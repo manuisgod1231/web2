@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="pageTitle">เว็ป/แอปคำนวณต้นทุน</title>
+  
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" sizes="180x180" href="icon-512.png">
@@ -11,6 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#4CAF50">
 
+  <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -20,7 +23,7 @@
   </script>
 
   <style>
-    body {font-family:'Segoe UI',sans-serif;margin:0;padding:20px;display:flex;justify-content:center;background:linear-gradient(to bottom right,#f0f4f8,#d9e2ec);color:#000;transition:0.4s;}
+    body {font-family:'Segoe UI',sans-serif;margin:0;padding:20px;display:flex;justify-content:center;background:linear-gradient(to bottom right,#f0f4f8,#d9e2ec);color:#000;transition:background 0.4s,color 0.4s;}
     body.dark{background:linear-gradient(to bottom right,#1e1e1e,#2c2c2c);color:#fff;}
     .container{width:95%;max-width:720px;background:#fff;padding:25px 30px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,0.12);}
     body.dark .container{background:#2a2a2a;box-shadow:0 10px 30px rgba(0,0,0,0.6);}
@@ -48,8 +51,9 @@
         <option value="th">ไทย</option>
         <option value="en">English</option>
       </select>
-      <button id="themeBtn" onclick="toggleDarkMode()">Dark Mode</button>
+      <button id="themeBtn" onclick="toggleDarkMode()">ตามระบบ</button>
     </div>
+
     <h2 id="title">เว็ป/แอปคำนวณต้นทุน</h2>
 
     <details open>
@@ -78,10 +82,11 @@
     <div id="result"></div>
   </div>
 
-  <div id="versionPanel">V2.0</div>
+  <div id="versionPanel">v2.2 – ภาษาบันทึกถาวร + ตามระบบ</div>
 
   <script>
     let materialCount = 0;
+
     const texts = {
       th: {
         title: "เว็ป/แอปคำนวณต้นทุน",
@@ -92,20 +97,19 @@
         labor: "ค่าแรงรวม", other: "ค่าน้ำ + ค่าไฟ", material: "วัตถุดิบรวม",
         total: "ต้นทุนรวม", profitText: "กำไรรวม", sale: "ราคาขายรวม",
         calc: "คำนวณ", reset: "รีเซ็ต",
-        darkMode: "โหมดมืด", lightMode: "โหมดสว่าง",
+        darkMode: "โหมดมืด", lightMode: "โหมดสว่าง", autoMode: "ตามระบบ",
         symbol: "฿", symbolBefore: false,
         empty: "กรุณาใส่ข้อมูลเพื่อคำนวณ"
       },
       en: {
-        title: "Cost Calculator",
-        materials: "Materials", laborSection: "Labor & Expenses",
+        title: "Cost Calculator", materials: "Materials", laborSection: "Labor & Expenses",
         workers: "Workers", wage: "Wage/person", water: "Water bill", electricity: "Electricity bill",
         matName: "Material name", matQty: "Qty (e.g. 2 pcs)", matCost: "Cost/unit", matProfit: "Profit/unit",
         addMaterial: "+ Add material", deleteBtn: "Delete",
         labor: "Total labor cost", other: "Water + Electricity", material: "Total materials",
         total: "Total cost", profitText: "Total profit", sale: "Selling price",
         calc: "Calculate", reset: "Reset",
-        darkMode: "Dark Mode", lightMode: "Light Mode",
+        darkMode: "Dark Mode", lightMode: "Light Mode", autoMode: "Auto",
         symbol: "$", symbolBefore: true,
         empty: "Please enter data to calculate"
       }
@@ -121,7 +125,7 @@
     function switchLang() {
       const lang = document.getElementById("langSelect").value;
       const t = texts[lang];
-      localStorage.setItem("lang", lang);
+      localStorage.setItem("lang", lang); // บันทึกภาษาทันที
       document.getElementById("title").textContent = t.title;
       document.getElementById("pageTitle").textContent = t.title;
       document.getElementById("labelMaterial").textContent = t.materials;
@@ -129,7 +133,6 @@
       document.getElementById("addBtn").textContent = t.addMaterial;
       document.getElementById("calcBtn").textContent = t.calc;
       document.getElementById("resetBtn").textContent = t.reset;
-      document.getElementById("themeBtn").textContent = document.body.classList.contains("dark") ? t.lightMode : t.darkMode;
       document.getElementById("workers").placeholder = t.workers;
       document.getElementById("wage").placeholder = t.wage;
       document.getElementById("water").placeholder = t.water;
@@ -141,7 +144,45 @@
         row.children[3].placeholder = t.matProfit;
         if (row.children[4]) row.children[4].textContent = t.deleteBtn;
       });
+      updateThemeButton();
+      calculate(); // อัปเดตผลลัพธ์ทันทีเมื่อเปลี่ยนภาษา
     }
+
+    function applySystemTheme() {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) document.body.classList.add('dark');
+      else document.body.classList.remove('dark');
+      updateThemeButton();
+    }
+
+    function updateThemeButton() {
+      const t = texts[document.getElementById("langSelect").value];
+      const saved = localStorage.getItem("theme");
+      if (saved === "dark") {
+        document.body.classList.add("dark");
+        document.getElementById("themeBtn").textContent = t.lightMode;
+      } else if (saved === "light") {
+        document.body.classList.remove("dark");
+        document.getElementById("themeBtn").textContent = t.darkMode;
+      } else {
+        applySystemTheme();
+        document.getElementById("themeBtn").textContent = t.autoMode;
+      }
+    }
+
+    function toggleDarkMode() {
+      const saved = localStorage.getItem("theme");
+      if (saved === "dark") {
+        localStorage.setItem("theme", "light");
+      } else if (saved === "light") {
+        localStorage.removeItem("theme");
+      } else {
+        localStorage.setItem("theme", "dark");
+      }
+      updateThemeButton();
+    }
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applySystemTheme);
 
     function addMaterial(name="", qty="", cost="", profit="") {
       materialCount++;
@@ -193,9 +234,7 @@
       const totalCost = laborCost + otherCost + materialCost;
       const sellingPrice = totalCost + profitTotal;
 
-      // ตรวจสอบว่ามีข้อมูลอะไรบ้าง
       let lines = [];
-
       if (laborCost > 0) lines.push(`${t.labor}: <strong>${formatMoney(laborCost)}</strong>`);
       if (otherCost > 0) lines.push(`${t.other}: <strong>${formatMoney(otherCost)}</strong>`);
       if (materialCost > 0 || hasMaterials) lines.push(`${t.material}: <strong>${formatMoney(materialCost)}</strong>`);
@@ -208,14 +247,6 @@
 
       document.getElementById("result").innerHTML = resultHTML;
       saveData();
-    }
-
-    function toggleDarkMode() {
-      document.body.classList.toggle("dark");
-      const isDark = document.body.classList.contains("dark");
-      const t = texts[document.getElementById("langSelect").value];
-      document.getElementById("themeBtn").textContent = isDark ? t.lightMode : t.darkMode;
-      localStorage.setItem("theme", isDark ? "dark" : "light");
     }
 
     function saveData() {
@@ -242,15 +273,24 @@
       const saved = localStorage.getItem("calcData");
       if (!saved) return;
       const data = JSON.parse(saved);
-      if (data.lang) document.getElementById("langSelect").value = data.lang;
+
+      // โหลดภาษา
+      if (data.lang) {
+        document.getElementById("langSelect").value = data.lang;
+      }
+
+      // ใช้ภาษาที่โหลดมาก่อน แล้วค่อย switchLang
       switchLang();
+
       document.getElementById("workers").value = data.workers || "";
       document.getElementById("wage").value = data.wage || "";
       document.getElementById("water").value = data.water || "";
       document.getElementById("electricity").value = data.electricity || "";
       document.getElementById("materials").innerHTML = "";
       (data.materials || []).forEach(m => addMaterial(m.name, m.qty, m.cost, m.profit));
-      if (!data.materials || data.materials.length === 0) addMaterial();
+      if ((!data.materials || data.materials.length === 0) && !data.workers && !data.wage && !data.water && !data.electricity) {
+        addMaterial();
+      }
     }
 
     function resetAll() {
@@ -260,12 +300,11 @@
       }
     }
 
+    // เริ่มต้นแอป
     window.onload = () => {
-      const savedLang = localStorage.getItem("lang") || "th";
-      document.getElementById("langSelect").value = savedLang;
-      if (localStorage.getItem("theme") === "dark") document.body.classList.add("dark");
-      switchLang();
-      loadData();
+      loadData();           // โหลดข้อมูล + ภาษา
+      updateThemeButton();  // ตั้งค่าธีมตามระบบหรือที่บันทึกไว้
+      calculate();          // แสดงผลลัพธ์ทันทีถ้ามีข้อมูล
     };
   </script>
 </body>
