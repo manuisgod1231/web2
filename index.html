@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#4CAF50">
   <style>
-    body {font-family:'Segoe UI',sans-serif;margin:0;padding:20px;display:flex;justify-content:center;background:linear-gradient(to bottom right,#f0f4f8,#d9e2ec);color:#000;transition:background 0.4s,color 0.4s;}
+    body {font-family:'Segoe UI',sans-serif;margin:0;padding:20px;display:flex;justify-content:center;background:linear-gradient(to bottom right,#f0f4f8,#d9e2ec);color:#000;transition:0.4s;}
     body.dark{background:linear-gradient(to bottom right,#1e1e1e,#2c2c2c);color:#fff;}
     .container{width:95%;max-width:720px;background:#fff;padding:25px 30px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,0.12);}
     body.dark .container{background:#2a2a2a;box-shadow:0 10px 30px rgba(0,0,0,0.6);}
@@ -70,7 +70,7 @@
     <div id="result"></div>
   </div>
 
-  <div id="versionPanel">Beta 1.2.1 (Fixed)</div>
+  <div id="versionPanel">Beta 1.2.3 – Thai style: 1,250 ฿</div>
 
   <script>
     let materialCount = 0;
@@ -82,14 +82,13 @@
         laborSection: "ค่าแรง & ค่าใช้จ่าย",
         workers: "จำนวนคน", wage: "ค่าแรง/คน", water: "ค่าน้ำ", electricity: "ค่าไฟ",
         matName: "ชื่อวัตถุดิบ", matQty: "จำนวน (เช่น 2 จาน)", matCost: "ราคาต่อหน่วย", matProfit: "กำไร/หน่วย",
-        addMaterial: "+ เพิ่มวัตถุดิบ",
-        deleteBtn: "ลบ",
+        addMaterial: "+ เพิ่มวัตถุดิบ", deleteBtn: "ลบ",
         labor: "ค่าแรงรวม", other: "ค่าน้ำ + ค่าไฟ", material: "วัตถุดิบรวม",
         total: "ต้นทุนรวม", profitText: "กำไรรวม", sale: "ราคาขายรวม",
         calc: "คำนวณ", reset: "รีเซ็ต",
         darkMode: "โหมดมืด", lightMode: "โหมดสว่าง",
-        currency: "บาท",
-        currencySymbol: "฿"
+        symbol: "฿",
+        symbolBefore: false   // เปลี่ยนตรงนี้ = ใส่ ฿ ด้านหลัง
       },
       en: {
         title: "Cost Calculator",
@@ -97,27 +96,28 @@
         laborSection: "Labor & Expenses",
         workers: "Workers", wage: "Wage/person", water: "Water bill", electricity: "Electricity bill",
         matName: "Material name", matQty: "Qty (e.g. 2 pcs)", matCost: "Cost/unit", matProfit: "Profit/unit",
-        addMaterial: "+ Add material",
-        deleteBtn: "Delete",
+        addMaterial: "+ Add material", deleteBtn: "Delete",
         labor: "Total labor cost", other: "Water + Electricity", material: "Total materials",
         total: "Total cost", profitText: "Total profit", sale: "Selling price",
         calc: "Calculate", reset: "Reset",
         darkMode: "Dark Mode", lightMode: "Light Mode",
-        currency: "USD",
-        currencySymbol: "$"
+        symbol: "$",
+        symbolBefore: true    // ดอลลาร์ยังอยู่ด้านหน้า
       }
     };
 
-    function getText(key) {
+    function formatMoney(amount) {
       const lang = document.getElementById("langSelect").value;
-      return texts[lang][key];
+      const t = texts[lang];
+      const num = Number(amount).toLocaleString("en-US", {minimumFractionDigits: 0, maximumFractionDigits: 2});
+      return t.symbolBefore ? `${t.symbol}${num}` : `${num} ${t.symbol}`;
     }
 
     function switchLang() {
-      const t = texts[document.getElementById("langSelect").value];
-      localStorage.setItem("lang", document.getElementById("langSelect").value);
+      const lang = document.getElementById("langSelect").value;
+      const t = texts[lang];
+      localStorage.setItem("lang", lang);
 
-      // Update all static texts
       document.getElementById("title").textContent = t.title;
       document.getElementById("pageTitle").textContent = t.title;
       document.getElementById("labelMaterial").textContent = t.materials;
@@ -127,13 +127,11 @@
       document.getElementById("resetBtn").textContent = t.reset;
       document.getElementById("themeBtn").textContent = document.body.classList.contains("dark") ? t.lightMode : t.darkMode;
 
-      // Update placeholders
       document.getElementById("workers").placeholder = t.workers;
       document.getElementById("wage").placeholder = t.wage;
       document.getElementById("water").placeholder = t.water;
       document.getElementById("electricity").placeholder = t.electricity;
 
-      // Update all material rows
       document.querySelectorAll("#materials .input-row").forEach(row => {
         row.children[0].placeholder = t.matName;
         row.children[1].placeholder = t.matQty;
@@ -167,7 +165,6 @@
     function calculate() {
       const lang = document.getElementById("langSelect").value;
       const t = texts[lang];
-      const symbol = t.currencySymbol;
 
       const workers = parseFloat(document.getElementById("workers").value) || 0;
       const wage = parseFloat(document.getElementById("wage").value) || 0;
@@ -183,8 +180,8 @@
         const profit = parseFloat(row.children[3].value) || 0;
         let qty = parseFloat(qtyStr) || 1;
         if (isNaN(qty)) {
-          const match = qtyStr.match(/[\d.]+/);
-          qty = match ? parseFloat(match[0]) : 1;
+          const m = qtyStr.match(/[\d.]+/);
+          qty = m ? parseFloat(m[0]) : 1;
         }
         materialCost += qty * cost;
         profitTotal += qty * profit;
@@ -196,12 +193,12 @@
       const sellingPrice = totalCost + profitTotal;
 
       document.getElementById("result").innerHTML = `
-        ${t.labor}: <strong>${symbol}${laborCost.toLocaleString()}</strong><br>
-        ${t.other}: <strong>${symbol}${otherCost.toLocaleString()}</strong><br>
-        ${t.material}: <strong>${symbol}${materialCost.toLocaleString()}</strong><br>
-        ${t.total}: <strong>${symbol}${totalCost.toLocaleString()}</strong><br><br>
-        ${t.profitText}: <strong>${symbol}${profitTotal.toLocaleString()}</strong><br>
-        <strong style="font-size:1.3em;color:#4CAF50;">${t.sale}: ${symbol}${sellingPrice.toLocaleString()}</strong>
+        ${t.labor}: <strong>${formatMoney(laborCost)}</strong><br>
+        ${t.other}: <strong>${formatMoney(otherCost)}</strong><br>
+        ${t.material}: <strong>${formatMoney(materialCost)}</strong><br>
+        ${t.total}: <strong>${formatMoney(totalCost)}</strong><br><br>
+        ${t.profitText}: <strong>${formatMoney(profitTotal)}</strong><br>
+        <strong style="font-size:1.4em;color:#4CAF50;">${t.sale}: ${formatMoney(sellingPrice)}</strong>
       `;
 
       saveData();
@@ -240,10 +237,8 @@
       if (!saved) return;
       const data = JSON.parse(saved);
 
-      if (data.lang) {
-        document.getElementById("langSelect").value = data.lang;
-      }
-      switchLang(); // Apply correct language
+      if (data.lang) document.getElementById("langSelect").value = data.lang;
+      switchLang();
 
       document.getElementById("workers").value = data.workers || "";
       document.getElementById("wage").value = data.wage || "";
@@ -252,11 +247,11 @@
 
       document.getElementById("materials").innerHTML = "";
       (data.materials || []).forEach(m => addMaterial(m.name, m.qty, m.cost, m.profit));
-      if (data.materials && data.materials.length === 0) addMaterial();
+      if (!data.materials || data.materials.length === 0) addMaterial();
     }
 
     function resetAll() {
-      if (confirm(getText("reset") + " all data? / ลบข้อมูลทั้งหมด?")) {
+      if (confirm("ลบข้อมูลทั้งหมดหรือไม่? / Clear all data?")) {
         localStorage.removeItem("calcData");
         location.reload();
       }
@@ -272,7 +267,6 @@
 
       switchLang();
       loadData();
-      if (materialCount === 0) addMaterial(); // Always start with one row
     };
   </script>
 </body>
