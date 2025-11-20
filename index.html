@@ -1,251 +1,279 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>เว็ป/แอปคำนวณต้นทุน</title>
-
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon-192.png" sizes="192x192">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-512.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#4CAF50">
-
-<style>
-body { font-family:'Segoe UI',sans-serif; margin:0;padding:20px; display:flex;justify-content:center; background:linear-gradient(to bottom right,#f0f4f8,#d9e2ec); color:#000; transition:0.3s;}
-body.dark{background:linear-gradient(to bottom right,#1e1e1e,#2c2c2c); color:#fff;}
-.container{width:95%; max-width:720px; background:#fff; padding:25px 30px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.12); transition:0.3s;}
-body.dark .container{background:#2a2a2a; box-shadow:0 10px 30px rgba(0,0,0,0.5); color:#fff;}
-h2{text-align:center; margin-top:0;}
-.language-select{text-align:right; margin-bottom:15px;}
-details{margin:15px 0; border-radius:12px; padding:12px; background:#f9fafc; box-shadow:0 2px 8px rgba(0,0,0,0.08);}
-body.dark details{background:#333; box-shadow:0 2px 8px rgba(0,0,0,0.5); color:#fff;}
-details summary{font-weight:600; font-size:16px; cursor:pointer;}
-.input-row{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; align-items:center;}
-.input-row input, .input-row select{flex:1; padding:10px 12px; border:1px solid #ccd6dd; border-radius:10px; font-size:14px; transition:0.2s; color:#000; background:#fff;}
-body.dark .input-row input, body.dark .input-row select{background:#444;color:#fff;border:1px solid #666;}
-button{padding:10px 18px; margin-top:12px; cursor:pointer; border:none; border-radius:12px; background:#4CAF50; color:white; font-weight:600; font-size:15px; transition:0.2s;}
-#result{margin-top:20px; padding:20px; border-radius:16px; background:#e8f5e9; border:1px solid #a5d6a7; font-weight:500; line-height:1.6;}
-body.dark #result{background:#3a3a3a; border:1px solid #666; color:#fff;}
-#userPanel {position: fixed; bottom: 15px; right: 15px; max-width: 100px; padding: 10px; background: rgba(76, 175, 80, 0.9); color: #fff; font-size: 14px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 9999; text-align:center;}
-#versionPanel {position: fixed; bottom: 15px; left: 15px; padding: 8px 12px; background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; border-radius: 8px; box-shadow: 0 3px 10px rgba(0,0,0,0.3); z-index: 9999; transition:0.3s;}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="pageTitle">เว็ป/แอปคำนวณต้นทุน</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-512.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#4CAF50">
+  <style>
+    body {font-family:'Segoe UI',sans-serif;margin:0;padding:20px;display:flex;justify-content:center;background:linear-gradient(to bottom right,#f0f4f8,#d9e2ec);color:#000;transition:background 0.4s,color 0.4s;}
+    body.dark{background:linear-gradient(to bottom right,#1e1e1e,#2c2c2c);color:#fff;}
+    .container{width:95%;max-width:720px;background:#fff;padding:25px 30px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,0.12);}
+    body.dark .container{background:#2a2a2a;box-shadow:0 10px 30px rgba(0,0,0,0.6);}
+    h2{text-align:center;margin-top:0;}
+    .language-select{text-align:right;margin-bottom:15px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
+    details{margin:15px 0;border-radius:12px;padding:12px;background:#f9fafc;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+    body.dark details{background:#333;color:#fff;}
+    details summary{font-weight:600;font-size:16px;cursor:pointer;outline:none;}
+    .input-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center;}
+    .input-row input,.input-row select{flex:1;padding:10px 12px;border:1px solid #ccd6dd;border-radius:10px;font-size:14px;background:#fff;}
+    body.dark .input-row input,body.dark .input-row select{background:#444;color:#fff;border-color:#666;}
+    button{padding:10px 18px;margin:5px 5px 5px 0;cursor:pointer;border:none;border-radius:12px;background:#4CAF50;color:white;font-weight:600;font-size:15px;}
+    button:hover{background:#45a049;}
+    button.delete{background:#e74c3c;}
+    button.delete:hover{background:#c0392b;}
+    #result{margin-top:20px;padding:20px;border-radius:16px;background:#e8f5e9;border:1px solid #a5d6a7;font-weight:500;line-height:1.9;}
+    body.dark #result{background:#3a3a3a;border:1px solid #666;color:#fff;}
+    #versionPanel{position:fixed;bottom:10px;left:10px;padding:6px 10px;background:rgba(0,0,0,0.7);color:#fff;font-size:11px;border-radius:6px;z-index:9999;}
+  </style>
 </head>
 <body>
-<div class="container" id="appContent">
-  <div class="language-select">
-    <select id="langSelect" onchange="switchLang()">
-      <option value="th">ไทย</option>
-      <option value="en">English</option>
-    </select>
-    <button id="themeBtn" onclick="toggleDarkMode()">🌙</button>
+  <div class="container">
+    <div class="language-select">
+      <select id="langSelect" onchange="switchLang()">
+        <option value="th">ไทย</option>
+        <option value="en">English</option>
+      </select>
+      <button id="themeBtn" onclick="toggleDarkMode()">Dark Mode</button>
+    </div>
+
+    <h2 id="title">เว็ป/แอปคำนวณต้นทุน</h2>
+
+    <details open>
+      <summary id="labelMaterial">วัตถุดิบ</summary>
+      <div id="materials"></div>
+      <button onclick="addMaterial()" id="addBtn">+ เพิ่มวัตถุดิบ</button>
+    </details>
+
+    <details>
+      <summary id="labelLabor">ค่าแรง & ค่าใช้จ่าย</summary>
+      <div class="input-row">
+        <input type="number" id="workers" placeholder="จำนวนคน">
+        <input type="number" id="wage" placeholder="ค่าแรงต่อคน">
+      </div>
+      <div class="input-row">
+        <input type="number" id="water" placeholder="ค่าน้ำ">
+        <input type="number" id="electricity" placeholder="ค่าไฟ">
+      </div>
+    </details>
+
+    <div style="margin-top:15px;">
+      <button onclick="calculate()" id="calcBtn">คำนวณ</button>
+      <button onclick="resetAll()" id="resetBtn">รีเซ็ต</button>
+    </div>
+
+    <div id="result"></div>
   </div>
-  <h2 id="title">📊 เว็ป/แอปคำนวณต้นทุน</h2>
 
-  <details open>
-    <summary id="labelMaterial">🥦 วัตถุดิบ</summary>
-    <div id="materials"></div>
-    <button onclick="addMaterial()">+ เพิ่มวัตถุดิบ</button>
-  </details>
+  <div id="versionPanel">Beta 1.2.1 (Fixed)</div>
 
-  <details>
-    <summary id="labelLabor">💼 ค่าแรง & ค่าใช้จ่าย</summary>
-    <div class="input-row">
-      <input type="number" id="workers" placeholder="จำนวนคน">
-      <input type="number" id="wage" placeholder="ค่าแรงต่อคน">
-    </div>
-    <div class="input-row">
-      <input type="number" id="water" placeholder="ค่าน้ำ">
-      <input type="number" id="electricity" placeholder="ค่าไฟ">
-    </div>
-  </details>
+  <script>
+    let materialCount = 0;
 
-  <button onclick="calculate()" id="calcBtn">คำนวณ</button>
-  <button onclick="resetAll()">รีเซ็ต</button>
-  <div id="result"></div>
-</div>
+    const texts = {
+      th: {
+        title: "เว็ป/แอปคำนวณต้นทุน",
+        materials: "วัตถุดิบ",
+        laborSection: "ค่าแรง & ค่าใช้จ่าย",
+        workers: "จำนวนคน", wage: "ค่าแรง/คน", water: "ค่าน้ำ", electricity: "ค่าไฟ",
+        matName: "ชื่อวัตถุดิบ", matQty: "จำนวน (เช่น 2 จาน)", matCost: "ราคาต่อหน่วย", matProfit: "กำไร/หน่วย",
+        addMaterial: "+ เพิ่มวัตถุดิบ",
+        deleteBtn: "ลบ",
+        labor: "ค่าแรงรวม", other: "ค่าน้ำ + ค่าไฟ", material: "วัตถุดิบรวม",
+        total: "ต้นทุนรวม", profitText: "กำไรรวม", sale: "ราคาขายรวม",
+        calc: "คำนวณ", reset: "รีเซ็ต",
+        darkMode: "โหมดมืด", lightMode: "โหมดสว่าง",
+        currency: "บาท",
+        currencySymbol: "฿"
+      },
+      en: {
+        title: "Cost Calculator",
+        materials: "Materials",
+        laborSection: "Labor & Expenses",
+        workers: "Workers", wage: "Wage/person", water: "Water bill", electricity: "Electricity bill",
+        matName: "Material name", matQty: "Qty (e.g. 2 pcs)", matCost: "Cost/unit", matProfit: "Profit/unit",
+        addMaterial: "+ Add material",
+        deleteBtn: "Delete",
+        labor: "Total labor cost", other: "Water + Electricity", material: "Total materials",
+        total: "Total cost", profitText: "Total profit", sale: "Selling price",
+        calc: "Calculate", reset: "Reset",
+        darkMode: "Dark Mode", lightMode: "Light Mode",
+        currency: "USD",
+        currencySymbol: "$"
+      }
+    };
 
-<div id="userPanel">👥🟢 = 0</div>
-<div id="versionPanel">Beta 1.1.0</div>
-
-<script>
-let materialCount=0;
-const texts={
-  th:{
-    title:"📊 เว็ป/แอปคำนวณต้นทุน", materials:"🥦 วัตถุดิบ",
-    workers:"จำนวนคน", wage:"ค่าแรง/คน", water:"ค่าน้ำ", electricity:"ค่าไฟ",
-    matName:"ชื่อวัตถุดิบ", matQty:"จำนวน (เช่น 2 จาน)", matCost:"ราคาต่อหน่วย (บาท)",
-    matProfit:"กำไร/ชิ้น", labor:"💼 ค่าแรงรวม", other:"💧 ค่าน้ำ + ⚡ ค่าไฟ",
-    material:"🥦 วัตถุดิบ", total:"📊 ต้นทุนรวม", profitText:"💰 กำไรรวม", sale:"💵 ราคาขายรวม", calc:"คำนวณ"
-  },
-  en:{
-    title:"📊 Cost Calculator", materials:"🥦 Materials",
-    workers:"Workers", wage:"Wage/person", water:"Water", electricity:"Electricity",
-    matName:"Material name", matQty:"Qty (e.g., 2 pcs)", matCost:"Cost/unit (฿)",
-    matProfit:"Profit/unit", labor:"💼 Labor cost", other:"💧 Water + ⚡ Electricity",
-    material:"🥦 Materials", total:"📊 Total cost", profitText:"💰 Total profit", sale:"💵 Selling price", calc:"Calculate"
-  }
-};
-
-function addMaterial(name="", qty="", cost="", profit=""){
-  materialCount++;
-  const lang=document.getElementById("langSelect").value;
-  const t=texts[lang];
-  const div=document.createElement("div");
-  div.className="input-row"; div.id="material-"+materialCount;
-  div.innerHTML=`
-    <input type="text" placeholder="${t.matName}" value="${name}" style="flex:2">
-    <input type="text" placeholder="${t.matQty}" value="${qty}" style="flex:1">
-    <input type="number" placeholder="${t.matCost}" value="${cost}" style="flex:1">
-    <input type="number" placeholder="${t.matProfit}" value="${profit}" style="flex:1">
-    <button onclick="toggleLock(${materialCount})">🔒</button>
-    <button onclick="deleteMaterial(${materialCount})">❌</button>
-  `;
-  document.getElementById("materials").appendChild(div);
-}
-
-function toggleLock(id){
-  const div=document.getElementById("material-"+id);
-  const inputs=div.getElementsByTagName("input");
-  const lockBtn=div.getElementsByTagName("button")[0];
-  const locked=inputs[0].disabled;
-  for(let i=0;i<4;i++){inputs[i].disabled=!locked;}
-  lockBtn.textContent=locked?"🔒":"🔓";
-}
-
-function deleteMaterial(id){ 
-  const div=document.getElementById("material-"+id); 
-  if(div) div.remove(); 
-  saveData();
-}
-
-function calculate(){
-  const workers=parseFloat(document.getElementById("workers").value)||0;
-  const wage=parseFloat(document.getElementById("wage").value)||0;
-  const water=parseFloat(document.getElementById("water").value)||0;
-  const electricity=parseFloat(document.getElementById("electricity").value)||0;
-
-  let materialCost=0;
-  let profitTotal=0;
-
-  document.querySelectorAll("#materials .input-row").forEach(row=>{
-    const qtyStr=row.children[1].value.trim();
-    const cost=parseFloat(row.children[2].value)||0;
-    const profitEach=parseFloat(row.children[3].value)||0;
-
-    let qty=parseFloat(qtyStr);
-    if(isNaN(qty)){
-      const m=qtyStr.match(/[\d.]+/);
-      qty=m?parseFloat(m[0]):1;
+    function getText(key) {
+      const lang = document.getElementById("langSelect").value;
+      return texts[lang][key];
     }
 
-    materialCost += qty*cost;
-    profitTotal  += qty*profitEach;
-  });
+    function switchLang() {
+      const t = texts[document.getElementById("langSelect").value];
+      localStorage.setItem("lang", document.getElementById("langSelect").value);
 
-  const laborCost=workers*wage;
-  const otherCost=water+electricity;
-  const totalCost=laborCost+otherCost+materialCost;
-  const sellingPrice=totalCost+profitTotal;
+      // Update all static texts
+      document.getElementById("title").textContent = t.title;
+      document.getElementById("pageTitle").textContent = t.title;
+      document.getElementById("labelMaterial").textContent = t.materials;
+      document.getElementById("labelLabor").textContent = t.laborSection;
+      document.getElementById("addBtn").textContent = t.addMaterial;
+      document.getElementById("calcBtn").textContent = t.calc;
+      document.getElementById("resetBtn").textContent = t.reset;
+      document.getElementById("themeBtn").textContent = document.body.classList.contains("dark") ? t.lightMode : t.darkMode;
 
-  const lang=document.getElementById("langSelect").value;
-  const t=texts[lang];
-  document.getElementById("result").innerHTML=`
-    ${t.labor}: ${laborCost.toLocaleString()} บาท<br>
-    ${t.other}: ${otherCost.toLocaleString()} บาท<br>
-    ${t.material}: ${materialCost.toLocaleString()} บาท<br>
-    ${t.total}: ${totalCost.toLocaleString()} บาท<br>
-    ${t.profitText}: ${profitTotal.toLocaleString()} บาท<br>
-    ${t.sale}: ${sellingPrice.toLocaleString()} บาท
-  `;
-  saveData();
-}
+      // Update placeholders
+      document.getElementById("workers").placeholder = t.workers;
+      document.getElementById("wage").placeholder = t.wage;
+      document.getElementById("water").placeholder = t.water;
+      document.getElementById("electricity").placeholder = t.electricity;
 
-function switchLang(){
-  const lang=document.getElementById("langSelect").value;
-  const t=texts[lang];
-  document.getElementById("title").textContent=t.title;
-  document.getElementById("labelMaterial").textContent=t.materials;
-  document.getElementById("labelLabor").textContent=t.workers+" & "+t.other;
-  document.getElementById("calcBtn").textContent=t.calc;
-  document.querySelectorAll("#materials .input-row").forEach(row=>{
-    row.children[0].placeholder=t.matName;
-    row.children[1].placeholder=t.matQty;
-    row.children[2].placeholder=t.matCost;
-    row.children[3].placeholder=t.matProfit;
-  });
-}
+      // Update all material rows
+      document.querySelectorAll("#materials .input-row").forEach(row => {
+        row.children[0].placeholder = t.matName;
+        row.children[1].placeholder = t.matQty;
+        row.children[2].placeholder = t.matCost;
+        row.children[3].placeholder = t.matProfit;
+        if (row.children[4]) row.children[4].textContent = t.deleteBtn;
+      });
+    }
 
-function toggleDarkMode(){
-  const body=document.body;
-  const btn=document.getElementById("themeBtn");
-  body.classList.toggle("dark");
-  btn.textContent=body.classList.contains("dark")?"☀️":"🌙";
-  localStorage.setItem("theme",body.classList.contains("dark")?"dark":"light");
-}
+    function addMaterial(name="", qty="", cost="", profit="") {
+      materialCount++;
+      const t = texts[document.getElementById("langSelect").value];
+      const div = document.createElement("div");
+      div.className = "input-row";
+      div.id = "material-" + materialCount;
+      div.innerHTML = `
+        <input type="text" placeholder="${t.matName}" value="${name}" style="flex:2">
+        <input type="text" placeholder="${t.matQty}" value="${qty}">
+        <input type="number" placeholder="${t.matCost}" value="${cost}">
+        <input type="number" placeholder="${t.matProfit}" value="${profit}">
+        <button class="delete" onclick="deleteMaterial(${materialCount})">${t.deleteBtn}</button>
+      `;
+      document.getElementById("materials").appendChild(div);
+    }
 
-function saveData(){
-  const data={
-    materials:[],
-    workers: document.getElementById("workers").value,
-    wage: document.getElementById("wage").value,
-    water: document.getElementById("water").value,
-    electricity: document.getElementById("electricity").value
-  };
-  document.querySelectorAll("#materials .input-row").forEach(row=>{
-    data.materials.push({
-      name: row.children[0].value,
-      qty: row.children[1].value,
-      cost: row.children[2].value,
-      profit: row.children[3].value
-    });
-  });
-  localStorage.setItem("calcData", JSON.stringify(data));
-}
+    function deleteMaterial(id) {
+      document.getElementById("material-" + id)?.remove();
+      saveData();
+    }
 
-function loadData(){
-  const data=JSON.parse(localStorage.getItem("calcData"));
-  if(!data) return;
-  document.getElementById("workers").value=data.workers;
-  document.getElementById("wage").value=data.wage;
-  document.getElementById("water").value=data.water;
-  document.getElementById("electricity").value=data.electricity;
-  data.materials.forEach(m=>addMaterial(m.name,m.qty,m.cost,m.profit));
-}
+    function calculate() {
+      const lang = document.getElementById("langSelect").value;
+      const t = texts[lang];
+      const symbol = t.currencySymbol;
 
-function resetAll(){
-  localStorage.removeItem("calcData");
-  location.reload();
-}
+      const workers = parseFloat(document.getElementById("workers").value) || 0;
+      const wage = parseFloat(document.getElementById("wage").value) || 0;
+      const water = parseFloat(document.getElementById("water").value) || 0;
+      const electricity = parseFloat(document.getElementById("electricity").value) || 0;
 
-// --- Users Online (local only) ---
-const userId = Date.now() + Math.random();
-sessionStorage.setItem("userId", userId);
+      let materialCost = 0;
+      let profitTotal = 0;
 
-function heartbeat() {
-  let online = JSON.parse(localStorage.getItem("onlineUsersObj")||"{}");
-  online[userId] = Date.now();
-  const now = Date.now();
-  for(let id in online){ if(now - online[id] > 500) delete online[id]; }
-  localStorage.setItem("onlineUsersObj", JSON.stringify(online));
-  document.getElementById("userPanel").textContent = `👥🟢 = ${Object.keys(online).length}`;
-}
-setInterval(heartbeat,100);
+      document.querySelectorAll("#materials .input-row").forEach(row => {
+        const qtyStr = row.children[1].value.trim();
+        const cost = parseFloat(row.children[2].value) || 0;
+        const profit = parseFloat(row.children[3].value) || 0;
+        let qty = parseFloat(qtyStr) || 1;
+        if (isNaN(qty)) {
+          const match = qtyStr.match(/[\d.]+/);
+          qty = match ? parseFloat(match[0]) : 1;
+        }
+        materialCost += qty * cost;
+        profitTotal += qty * profit;
+      });
 
-// --- PWA Service Worker ---
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js")
-    .then(()=>console.log("Service Worker registered"))
-    .catch(e=>console.log(e));
-}
+      const laborCost = workers * wage;
+      const otherCost = water + electricity;
+      const totalCost = laborCost + otherCost + materialCost;
+      const sellingPrice = totalCost + profitTotal;
 
-// --- Load saved data + theme ---
-loadData();
-if(localStorage.getItem("theme")==="dark"){
-  document.body.classList.add("dark");
-  document.getElementById("themeBtn").textContent="☀️";
-}
-</script>
+      document.getElementById("result").innerHTML = `
+        ${t.labor}: <strong>${symbol}${laborCost.toLocaleString()}</strong><br>
+        ${t.other}: <strong>${symbol}${otherCost.toLocaleString()}</strong><br>
+        ${t.material}: <strong>${symbol}${materialCost.toLocaleString()}</strong><br>
+        ${t.total}: <strong>${symbol}${totalCost.toLocaleString()}</strong><br><br>
+        ${t.profitText}: <strong>${symbol}${profitTotal.toLocaleString()}</strong><br>
+        <strong style="font-size:1.3em;color:#4CAF50;">${t.sale}: ${symbol}${sellingPrice.toLocaleString()}</strong>
+      `;
+
+      saveData();
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+      const isDark = document.body.classList.contains("dark");
+      const t = texts[document.getElementById("langSelect").value];
+      document.getElementById("themeBtn").textContent = isDark ? t.lightMode : t.darkMode;
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    }
+
+    function saveData() {
+      const data = {
+        lang: document.getElementById("langSelect").value,
+        workers: document.getElementById("workers").value || "",
+        wage: document.getElementById("wage").value || "",
+        water: document.getElementById("water").value || "",
+        electricity: document.getElementById("electricity").value || "",
+        materials: []
+      };
+      document.querySelectorAll("#materials .input-row").forEach(row => {
+        data.materials.push({
+          name: row.children[0].value,
+          qty: row.children[1].value,
+          cost: row.children[2].value,
+          profit: row.children[3].value
+        });
+      });
+      localStorage.setItem("calcData", JSON.stringify(data));
+    }
+
+    function loadData() {
+      const saved = localStorage.getItem("calcData");
+      if (!saved) return;
+      const data = JSON.parse(saved);
+
+      if (data.lang) {
+        document.getElementById("langSelect").value = data.lang;
+      }
+      switchLang(); // Apply correct language
+
+      document.getElementById("workers").value = data.workers || "";
+      document.getElementById("wage").value = data.wage || "";
+      document.getElementById("water").value = data.water || "";
+      document.getElementById("electricity").value = data.electricity || "";
+
+      document.getElementById("materials").innerHTML = "";
+      (data.materials || []).forEach(m => addMaterial(m.name, m.qty, m.cost, m.profit));
+      if (data.materials && data.materials.length === 0) addMaterial();
+    }
+
+    function resetAll() {
+      if (confirm(getText("reset") + " all data? / ลบข้อมูลทั้งหมด?")) {
+        localStorage.removeItem("calcData");
+        location.reload();
+      }
+    }
+
+    window.onload = () => {
+      const savedLang = localStorage.getItem("lang") || "th";
+      document.getElementById("langSelect").value = savedLang;
+
+      if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+      }
+
+      switchLang();
+      loadData();
+      if (materialCount === 0) addMaterial(); // Always start with one row
+    };
+  </script>
 </body>
 </html>
