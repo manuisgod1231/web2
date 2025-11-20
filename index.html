@@ -10,6 +10,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#4CAF50">
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').then(reg => reg.update());
+      });
+    }
+  </script>
+
   <style>
     body {font-family:'Segoe UI',sans-serif;margin:0;padding:20px;display:flex;justify-content:center;background:linear-gradient(to bottom right,#f0f4f8,#d9e2ec);color:#000;transition:0.4s;}
     body.dark{background:linear-gradient(to bottom right,#1e1e1e,#2c2c2c);color:#fff;}
@@ -41,7 +50,6 @@
       </select>
       <button id="themeBtn" onclick="toggleDarkMode()">Dark Mode</button>
     </div>
-
     <h2 id="title">เว็ป/แอปคำนวณต้นทุน</h2>
 
     <details open>
@@ -70,16 +78,14 @@
     <div id="result"></div>
   </div>
 
-  <div id="versionPanel">Beta 1.2.3 – Thai style: 1,250 ฿</div>
+  <div id="versionPanel">v2.0 – แสดงเฉพาะที่ใส่ข้อมูล</div>
 
   <script>
     let materialCount = 0;
-
     const texts = {
       th: {
         title: "เว็ป/แอปคำนวณต้นทุน",
-        materials: "วัตถุดิบ",
-        laborSection: "ค่าแรง & ค่าใช้จ่าย",
+        materials: "วัตถุดิบ", laborSection: "ค่าแรง & ค่าใช้จ่าย",
         workers: "จำนวนคน", wage: "ค่าแรง/คน", water: "ค่าน้ำ", electricity: "ค่าไฟ",
         matName: "ชื่อวัตถุดิบ", matQty: "จำนวน (เช่น 2 จาน)", matCost: "ราคาต่อหน่วย", matProfit: "กำไร/หน่วย",
         addMaterial: "+ เพิ่มวัตถุดิบ", deleteBtn: "ลบ",
@@ -87,13 +93,12 @@
         total: "ต้นทุนรวม", profitText: "กำไรรวม", sale: "ราคาขายรวม",
         calc: "คำนวณ", reset: "รีเซ็ต",
         darkMode: "โหมดมืด", lightMode: "โหมดสว่าง",
-        symbol: "฿",
-        symbolBefore: false   // เปลี่ยนตรงนี้ = ใส่ ฿ ด้านหลัง
+        symbol: "฿", symbolBefore: false,
+        empty: "กรุณาใส่ข้อมูลเพื่อคำนวณ"
       },
       en: {
         title: "Cost Calculator",
-        materials: "Materials",
-        laborSection: "Labor & Expenses",
+        materials: "Materials", laborSection: "Labor & Expenses",
         workers: "Workers", wage: "Wage/person", water: "Water bill", electricity: "Electricity bill",
         matName: "Material name", matQty: "Qty (e.g. 2 pcs)", matCost: "Cost/unit", matProfit: "Profit/unit",
         addMaterial: "+ Add material", deleteBtn: "Delete",
@@ -101,8 +106,8 @@
         total: "Total cost", profitText: "Total profit", sale: "Selling price",
         calc: "Calculate", reset: "Reset",
         darkMode: "Dark Mode", lightMode: "Light Mode",
-        symbol: "$",
-        symbolBefore: true    // ดอลลาร์ยังอยู่ด้านหน้า
+        symbol: "$", symbolBefore: true,
+        empty: "Please enter data to calculate"
       }
     };
 
@@ -117,7 +122,6 @@
       const lang = document.getElementById("langSelect").value;
       const t = texts[lang];
       localStorage.setItem("lang", lang);
-
       document.getElementById("title").textContent = t.title;
       document.getElementById("pageTitle").textContent = t.title;
       document.getElementById("labelMaterial").textContent = t.materials;
@@ -126,12 +130,10 @@
       document.getElementById("calcBtn").textContent = t.calc;
       document.getElementById("resetBtn").textContent = t.reset;
       document.getElementById("themeBtn").textContent = document.body.classList.contains("dark") ? t.lightMode : t.darkMode;
-
       document.getElementById("workers").placeholder = t.workers;
       document.getElementById("wage").placeholder = t.wage;
       document.getElementById("water").placeholder = t.water;
       document.getElementById("electricity").placeholder = t.electricity;
-
       document.querySelectorAll("#materials .input-row").forEach(row => {
         row.children[0].placeholder = t.matName;
         row.children[1].placeholder = t.matQty;
@@ -173,16 +175,15 @@
 
       let materialCost = 0;
       let profitTotal = 0;
+      let hasMaterials = false;
 
       document.querySelectorAll("#materials .input-row").forEach(row => {
         const qtyStr = row.children[1].value.trim();
         const cost = parseFloat(row.children[2].value) || 0;
         const profit = parseFloat(row.children[3].value) || 0;
+        if (cost > 0 || profit > 0 || qtyStr) hasMaterials = true;
         let qty = parseFloat(qtyStr) || 1;
-        if (isNaN(qty)) {
-          const m = qtyStr.match(/[\d.]+/);
-          qty = m ? parseFloat(m[0]) : 1;
-        }
+        if (isNaN(qty) && qtyStr) { const m = qtyStr.match(/[\d.]+/); qty = m ? parseFloat(m[0]) : 1; }
         materialCost += qty * cost;
         profitTotal += qty * profit;
       });
@@ -192,15 +193,20 @@
       const totalCost = laborCost + otherCost + materialCost;
       const sellingPrice = totalCost + profitTotal;
 
-      document.getElementById("result").innerHTML = `
-        ${t.labor}: <strong>${formatMoney(laborCost)}</strong><br>
-        ${t.other}: <strong>${formatMoney(otherCost)}</strong><br>
-        ${t.material}: <strong>${formatMoney(materialCost)}</strong><br>
-        ${t.total}: <strong>${formatMoney(totalCost)}</strong><br><br>
-        ${t.profitText}: <strong>${formatMoney(profitTotal)}</strong><br>
-        <strong style="font-size:1.4em;color:#4CAF50;">${t.sale}: ${formatMoney(sellingPrice)}</strong>
-      `;
+      // ตรวจสอบว่ามีข้อมูลอะไรบ้าง
+      let lines = [];
 
+      if (laborCost > 0) lines.push(`${t.labor}: <strong>${formatMoney(laborCost)}</strong>`);
+      if (otherCost > 0) lines.push(`${t.other}: <strong>${formatMoney(otherCost)}</strong>`);
+      if (materialCost > 0 || hasMaterials) lines.push(`${t.material}: <strong>${formatMoney(materialCost)}</strong>`);
+      if (lines.length > 0) lines.push(`${t.total}: <strong>${formatMoney(totalCost)}</strong>`);
+      if (profitTotal > 0) lines.push(`<br>${t.profitText}: <strong>${formatMoney(profitTotal)}</strong>`);
+
+      const resultHTML = lines.length > 0
+        ? lines.join("<br>") + `<br><br><strong style="font-size:1.4em;color:#4CAF50;">${t.sale}: ${formatMoney(sellingPrice)}</strong>`
+        : `<span style="color:#999;">${t.empty}</span>`;
+
+      document.getElementById("result").innerHTML = resultHTML;
       saveData();
     }
 
@@ -236,15 +242,12 @@
       const saved = localStorage.getItem("calcData");
       if (!saved) return;
       const data = JSON.parse(saved);
-
       if (data.lang) document.getElementById("langSelect").value = data.lang;
       switchLang();
-
       document.getElementById("workers").value = data.workers || "";
       document.getElementById("wage").value = data.wage || "";
       document.getElementById("water").value = data.water || "";
       document.getElementById("electricity").value = data.electricity || "";
-
       document.getElementById("materials").innerHTML = "";
       (data.materials || []).forEach(m => addMaterial(m.name, m.qty, m.cost, m.profit));
       if (!data.materials || data.materials.length === 0) addMaterial();
@@ -260,11 +263,7 @@
     window.onload = () => {
       const savedLang = localStorage.getItem("lang") || "th";
       document.getElementById("langSelect").value = savedLang;
-
-      if (localStorage.getItem("theme") === "dark") {
-        document.body.classList.add("dark");
-      }
-
+      if (localStorage.getItem("theme") === "dark") document.body.classList.add("dark");
       switchLang();
       loadData();
     };
