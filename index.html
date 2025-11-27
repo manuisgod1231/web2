@@ -1,311 +1,1091 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title id="pageTitle">เว็ป/แอปคำนวณต้นทุน</title>
-  
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon-192.png" sizes="192x192">
-  <link rel="apple-touch-icon" sizes="180x180" href="icon-512.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#4CAF50">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML UI Editor with Design Controls</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the editor canvas */
+        #editor-canvas {
+            min-height: 500px;
+            position: relative;
+            background-image: linear-gradient(to right, #e5e7eb 1px, transparent 1px), linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none; /* Crucial for preventing default scroll on touch */
+        }
+        
+        /* Center Guide Lines */
+        #editor-canvas::before, #editor-canvas::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 0, 0, 0.3); /* Subtle red center line */
+            z-index: 500;
+        }
 
-  <!-- Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js').then(reg => reg.update());
-      });
-    }
-  </script>
+        #editor-canvas::before { /* Vertical line */
+            width: 1px;
+            height: 100%;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        #editor-canvas::after { /* Horizontal line */
+            width: 100%;
+            height: 1px;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+        }
 
-  <style>
-    body {font-family:'Segoe UI',sans-serif;margin:0;padding:20px;display:flex;justify-content:center;background:linear-gradient(to bottom right,#f0f4f8,#d9e2ec);color:#000;transition:background 0.4s,color 0.4s;}
-    body.dark{background:linear-gradient(to bottom right,#1e1e1e,#2c2c2c);color:#fff;}
-    .container{width:95%;max-width:720px;background:#fff;padding:25px 30px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,0.12);}
-    body.dark .container{background:#2a2a2a;box-shadow:0 10px 30px rgba(0,0,0,0.6);}
-    h2{text-align:center;margin-top:0;}
-    .language-select{text-align:right;margin-bottom:15px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
-    details{margin:15px 0;border-radius:12px;padding:12px;background:#f9fafc;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
-    body.dark details{background:#333;color:#fff;}
-    details summary{font-weight:600;font-size:16px;cursor:pointer;outline:none;}
-    .input-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center;}
-    .input-row input,.input-row select{flex:1;padding:10px 12px;border:1px solid #ccd6dd;border-radius:10px;font-size:14px;background:#fff;}
-    body.dark .input-row input,body.dark .input-row select{background:#444;color:#fff;border-color:#666;}
-    button{padding:10px 18px;margin:5px 5px 5px 0;cursor:pointer;border:none;border-radius:12px;background:#4CAF50;color:white;font-weight:600;font-size:15px;}
-    button:hover{background:#45a049;}
-    button.delete{background:#e74c3c;}
-    button.delete:hover{background:#c0392b;}
-    #result{margin-top:20px;padding:20px;border-radius:16px;background:#e8f5e9;border:1px solid #a5d6a7;font-weight:500;line-height:1.9;}
-    body.dark #result{background:#3a3a3a;border:1px solid #666;color:#fff;}
-    #versionPanel{position:fixed;bottom:10px;left:10px;padding:6px 10px;background:rgba(0,0,0,0.7);color:#fff;font-size:11px;border-radius:6px;z-index:9999;}
-  </style>
+        /* Styling for the interactive element (the button wrapper) */
+        .ui-element-wrapper {
+            position: absolute;
+            cursor: grab;
+            border: 2px solid transparent;
+            box-sizing: border-box;
+            transition: box-shadow 0.1s;
+        }
+
+        /* State for Responsive Centering (New) */
+        .ui-element-wrapper[data-centered="true"] {
+            left: 50% !important;
+            top: 50% !important;
+            transform: translate(-50%, -50%);
+            cursor: default; /* Cannot drag when centered */
+            outline: 2px dashed #10b981; /* Green outline to show centered state */
+            outline-offset: 2px;
+        }
+
+        .ui-element-wrapper.active {
+            border-color: #3b82f6; /* Blue border when active */
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+            z-index: 1000 !important; /* Ensure active element is always visible during editing */
+        }
+
+        /* Styling for the resize handles */
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #3b82f6;
+            border: 1px solid #ffffff;
+            border-radius: 50%;
+            z-index: 1001; 
+            box-sizing: border-box;
+            touch-action: none; /* Prevent scroll on handle interaction */
+        }
+
+        /* Specific cursor styles for handles */
+        .handle-tr { top: -5px; right: -5px; cursor: nesw-resize; }
+        .handle-br { bottom: -5px; right: -5px; cursor: nwse-resize; }
+        .handle-bl { bottom: -5px; left: -5px; cursor: swne-resize; }
+        .handle-tl { top: -5px; left: -5px; cursor: nwse-resize; }
+
+        .ui-button {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default; 
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans p-4 md:p-8">
+
+    <h1 class="text-3xl font-extrabold text-gray-800 mb-6 border-b pb-2">Visual HTML Button Editor</h1>
+
+    <div class="flex flex-col lg:flex-row gap-6">
+
+        <!-- Sidebar: Controls -->
+        <div class="lg:w-1/4 space-y-6">
+
+            <!-- Toolbox -->
+            <div class="bg-white p-4 rounded-xl shadow-lg">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">Toolbox</h2>
+                <div class="space-y-2">
+                    <button id="add-button" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md">
+                        + Add Button
+                    </button>
+                    <button id="add-ui" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md">
+                        + UI
+                    </button>
+                    <!-- TOGGLE BUTTON: Will be updated by JS to show Enable/Disable -->
+                    <button id="center-element-toggle" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md disabled:opacity-50" disabled>
+                        Enable Responsive Centering
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Element Properties Panel -->
+            <div id="properties-panel" class="bg-white p-4 rounded-xl shadow-lg transition-opacity duration-300">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">Element Properties</h2>
+                <div id="no-selection-message" class="text-gray-500 italic">
+                    Select an element on the canvas to edit its properties.
+                </div>
+
+                <div id="properties-controls" class="space-y-4 hidden">
+                    <!-- Text Content -->
+                    <div>
+                        <label for="prop-text" class="block text-sm font-medium text-gray-700">Text Content</label>
+                        <input type="text" id="prop-text" class="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- Size -->
+                    <div class="flex gap-4">
+                        <div class="w-1/2">
+                            <label for="prop-width" class="block text-sm font-medium text-gray-700">Width (px)</label>
+                            <input type="number" id="prop-width" min="50" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div class="w-1/2">
+                            <label for="prop-height" class="block text-sm font-medium text-gray-700">Height (px)</label>
+                            <input type="number" id="prop-height" min="30" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+
+                    <!-- Colors -->
+                    <div class="flex gap-4">
+                        <div class="w-1/2">
+                            <label for="prop-bg-color" class="block text-sm font-medium text-gray-700">Background Color</label>
+                            <input type="color" id="prop-bg-color" class="mt-1 w-full h-10 border border-gray-300 rounded-lg">
+                        </div>
+                        <div class="w-1/2">
+                            <label for="prop-text-color" class="block text-sm font-medium text-gray-700">Text Color</label>
+                            <input type="color" id="prop-text-color" class="mt-1 w-full h-10 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+
+                    <!-- Font Size -->
+                    <div>
+                        <label for="prop-font-size" class="block text-sm font-medium text-gray-700">Font Size (px)</label>
+                        <input type="number" id="prop-font-size" min="8" max="48" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layer Panel -->
+            <div class="bg-white p-4 rounded-xl shadow-lg">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">Layers (Z-Index)</h2>
+                <ul id="layer-panel" class="space-y-2 text-sm">
+                    <li class="p-2 text-gray-500 italic">No elements yet.</li>
+                </ul>
+            </div>
+
+            <!-- HTML Code Output Panel -->
+            <div class="bg-white p-4 rounded-xl shadow-lg">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">HTML Output</h2>
+                <textarea id="html-output" rows="8" class="w-full p-2 border border-gray-300 rounded-lg text-xs font-mono bg-gray-50" readonly></textarea>
+                <button id="copy-html-button" class="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md">
+                    Copy HTML to Clipboard
+                </button>
+                <p id="copy-message" class="text-xs text-green-600 mt-2 hidden">Copied!</p>
+            </div>
+        </div>
+
+        <!-- Editor Canvas -->
+        <div class="lg:w-3/4 bg-white p-2 rounded-xl shadow-lg border-4 border-dashed border-gray-200">
+            <h2 class="text-xl font-semibold p-2 mb-2 text-gray-700">Design Canvas</h2>
+            <div id="editor-canvas" class="rounded-lg shadow-inner bg-white">
+                <!-- UI Elements will be appended here -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Global state and constants 
+        const canvas = document.getElementById('editor-canvas');
+        const layerPanel = document.getElementById('layer-panel');
+
+        let addButton, addUI, centerElementToggle, htmlOutput, copyHtmlButton, copyMessage; // centerElementToggle
+        let propertiesPanel, noSelectionMessage, propertiesControls;
+        let propText, propWidth, propHeight, propBgColor, propTextColor, propFontSize;
+
+        let activeElement = null; 
+        let elementCounter = 0;
+        let isDragging = false;
+        let isResizing = false;
+        let activeHandle = null;
+        let startX, startY, startWidth, startHeight, startLeft, startTop;
+        let draggedLi = null; 
+
+        // --- Utility Functions ---
+
+        /**
+         * Converts RGB string to hex color (e.g., rgb(255, 255, 255) -> #ffffff)
+         * Used for displaying color in the hex input field.
+         */
+        function rgbToHex(rgb) {
+            if (!rgb || rgb.startsWith('#')) return rgb || '#ffffff';
+
+            const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+            if (!match) return '#ffffff'; 
+
+            const toHex = (c) => {
+                const hex = parseInt(c).toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            };
+            return `#${toHex(match[1])}${toHex(match[2])}${toHex(match[3])}`;
+        }
+
+        // --- Core Logic ---
+
+        /**
+         * Generates the HTML markup for all elements on the canvas, wrapped in a runnable HTML document.
+         */
+        function updateHtmlOutput() {
+            const elements = Array.from(canvas.querySelectorAll('.ui-element-wrapper'));
+            let innerHtml = '';
+
+            // Sort by base Z-index (creation order) for clean output
+            elements.sort((a, b) => parseInt(a.dataset.baseZIndex) - parseInt(b.dataset.baseZIndex));
+
+            // Define base CSS for the output elements
+            const baseCss = `
+.ui-element-wrapper {
+    position: absolute;
+    box-sizing: border-box;
+}
+.ui-button {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    border: none;
+    outline: none;
+    padding: 0;
+    margin: 0;
+}`;
+
+            elements.forEach(el => {
+                const button = el.querySelector('.ui-button');
+                const isCentered = el.dataset.centered === 'true';
+                
+                // Collect styles for the wrapper (position and z-index)
+                let wrapperStyles = [
+                    `position: absolute`,
+                    `width: ${el.offsetWidth}px`,
+                    `height: ${el.offsetHeight}px`,
+                    `z-index: ${el.style.zIndex}`,
+                ];
+                
+                // CRUCIAL: Use responsive centering if toggled ON
+                if (isCentered) {
+                    wrapperStyles.push(`left: 50%`);
+                    wrapperStyles.push(`top: 50%`);
+                    wrapperStyles.push(`transform: translate(-50%, -50%)`);
+                } else {
+                    // FIX: Read the explicit style.left and style.top set by the drag interaction
+                    const currentLeft = el.style.left || `${el.offsetLeft}px`;
+                    const currentTop = el.style.top || `${el.offsetTop}px`;
+                    
+                    wrapperStyles.push(`left: ${currentLeft}`);
+                    wrapperStyles.push(`top: ${currentTop}`);
+                }
+                
+                const wrapperStylesString = wrapperStyles.join('; ');
+
+                // Collect styles for the inner button (design properties)
+                const buttonStyles = [
+                    button.style.backgroundColor ? `background-color: ${button.style.backgroundColor}` : null,
+                    button.style.color ? `color: ${button.style.color}` : null,
+                    button.style.fontSize ? `font-size: ${button.style.fontSize}` : null,
+                    button.style.borderRadius ? `border-radius: ${button.style.borderRadius}` : null,
+                ].filter(s => s).join('; ');
+
+                const content = button.textContent.trim();
+                const elementId = el.id.replace('-wrapper', ''); 
+
+                // Use a simple container class for the output
+                const buttonHtml = `<button id="${elementId}" class="ui-button" style="${buttonStyles || ''}">${content}</button>`;
+
+                innerHtml += `<div class="ui-element-wrapper" style="${wrapperStylesString}">\n  ${buttonHtml}\n</div>\n\n`;
+            });
+
+            // Added basic styling for body to ensure the relative positioning works for the absolute children
+            const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated UI</title>
+    <style>
+${baseCss.trim()}
+
+/* IMPORTANT: Ensure the body/container is positioned relative or uses min-height: 100vh 
+   so the absolute elements have a reference point. */
+body {
+    margin: 0; 
+    padding: 0; 
+    min-height: 100vh; /* Make sure there is height to center against */
+    position: relative; /* Essential reference for absolute children */
+    overflow: hidden; /* Prevent scrollbar if element is exactly 100vh */
+}
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="language-select">
-      <select id="langSelect" onchange="switchLang()">
-        <option value="th">ไทย</option>
-        <option value="en">English</option>
-      </select>
-      <button id="themeBtn" onclick="toggleDarkMode()">ตามระบบ</button>
-    </div>
 
-    <h2 id="title">เว็ป/แอปคำนวณต้นทุน</h2>
+${innerHtml.trim()}
 
-    <details open>
-      <summary id="labelMaterial">วัตถุดิบ</summary>
-      <div id="materials"></div>
-      <button onclick="addMaterial()" id="addBtn">+ เพิ่มวัตถุดิบ</button>
-    </details>
+</body>
+</html>`;
 
-    <details>
-      <summary id="labelLabor">ค่าแรง & ค่าใช้จ่าย</summary>
-      <div class="input-row">
-        <input type="number" id="workers" placeholder="จำนวนคน">
-        <input type="number" id="wage" placeholder="ค่าแรงต่อคน">
-      </div>
-      <div class="input-row">
-        <input type="number" id="water" placeholder="ค่าน้ำ">
-        <input type="number" id="electricity" placeholder="ค่าไฟ">
-      </div>
-    </details>
+            htmlOutput.value = fullHtml;
+        }
 
-    <div style="margin-top:15px;">
-      <button onclick="calculate()" id="calcBtn">คำนวณ</button>
-      <button onclick="resetAll()" id="resetBtn">รีเซ็ต</button>
-    </div>
+        /**
+         * Sets the given element as active, updates the UI, and manages Z-index.
+         */
+        function setActiveElement(element) {
+            
+            // 1. Clear active state from previous element
+            if (activeElement) {
+                activeElement.classList.remove('active');
+                if (activeElement.dataset.centered !== 'true') {
+                    activeElement.style.cursor = 'grab';
+                }
+                // When deselecting, restore Z-index based on the layer panel
+                reorderElements(); 
+            }
 
-    <div id="result"></div>
-  </div>
+            // 2. Set new active element
+            activeElement = element;
 
-  <div id="versionPanel">v2.2</div>
+            // 3. Update UI panels
+            if (activeElement) {
+                activeElement.classList.add('active');
+                if (activeElement.dataset.centered !== 'true') {
+                    activeElement.style.cursor = 'move';
+                }
+                
+                centerElementToggle.disabled = false; // Enable center toggle
+                updateCenterToggleVisual(activeElement.dataset.centered === 'true'); // <--- UPDATED
+                
+                updateLayerHighlight();
+                updatePropertiesPanel(); // Load properties for the selected element
+            } else {
+                 centerElementToggle.disabled = true; // Disable center toggle
+                 updateCenterToggleVisual(false); // Reset button visual/text
+                 updateLayerHighlight();
+                 updatePropertiesPanel(); // Hide/Reset properties panel
+            }
+        }
+        
+        /**
+         * Updates the visual state and text of the center toggle button. (REFINED)
+         */
+        function updateCenterToggleVisual(isCentered) {
+            if (isCentered) {
+                // Centered ON: Show red/green 'Disable' button
+                centerElementToggle.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+                centerElementToggle.classList.add('bg-green-500', 'hover:bg-green-600');
+                centerElementToggle.textContent = 'Disable Responsive Centering';
+            } else {
+                // Centered OFF: Show yellow 'Enable' button
+                centerElementToggle.classList.remove('bg-green-500', 'hover:bg-green-600');
+                centerElementToggle.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+                centerElementToggle.textContent = 'Enable Responsive Centering';
+            }
+        }
 
-  <script>
-    let materialCount = 0;
 
-    const texts = {
-      th: {
-        title: "เว็ป/แอปคำนวณต้นทุน",
-        materials: "วัตถุดิบ", laborSection: "ค่าแรง & ค่าใช้จ่าย",
-        workers: "จำนวนคน", wage: "ค่าแรง/คน", water: "ค่าน้ำ", electricity: "ค่าไฟ",
-        matName: "ชื่อวัตถุดิบ", matQty: "จำนวน (เช่น 2 จาน)", matCost: "ราคาต่อหน่วย", matProfit: "กำไร/หน่วย",
-        addMaterial: "+ เพิ่มวัตถุดิบ", deleteBtn: "ลบ",
-        labor: "ค่าแรงรวม", other: "ค่าน้ำ + ค่าไฟ", material: "วัตถุดิบรวม",
-        total: "ต้นทุนรวม", profitText: "กำไรรวม", sale: "ราคาขายรวม",
-        calc: "คำนวณ", reset: "รีเซ็ต",
-        darkMode: "โหมดมืด", lightMode: "โหมดสว่าง", autoMode: "ตามระบบ",
-        symbol: "฿", symbolBefore: false,
-        empty: "กรุณาใส่ข้อมูลเพื่อคำนวณ"
-      },
-      en: {
-        title: "Cost Calculator", materials: "Materials", laborSection: "Labor & Expenses",
-        workers: "Workers", wage: "Wage/person", water: "Water bill", electricity: "Electricity bill",
-        matName: "Material name", matQty: "Qty (e.g. 2 pcs)", matCost: "Cost/unit", matProfit: "Profit/unit",
-        addMaterial: "+ Add material", deleteBtn: "Delete",
-        labor: "Total labor cost", other: "Water + Electricity", material: "Total materials",
-        total: "Total cost", profitText: "Total profit", sale: "Selling price",
-        calc: "Calculate", reset: "Reset",
-        darkMode: "Dark Mode", lightMode: "Light Mode", autoMode: "Auto",
-        symbol: "$", symbolBefore: true,
-        empty: "Please enter data to calculate"
-      }
-    };
+        /**
+         * Creates a new draggable and resizable element.
+         */
+        function createNewElement(name, initialBgColor, initialTextColor) {
+            elementCounter++;
+            const elementId = `ui-element-${elementCounter}`;
+            const baseZIndex = elementCounter; 
 
-    function formatMoney(amount) {
-      const lang = document.getElementById("langSelect").value;
-      const t = texts[lang];
-      const num = Number(amount).toLocaleString("en-US", {minimumFractionDigits: 0, maximumFractionDigits: 2});
-      return t.symbolBefore ? `${t.symbol}${num}` : `${num} ${t.symbol}`;
-    }
+            // 1. Create the wrapper (handles drag/resize/position)
+            const wrapper = document.createElement('div');
+            wrapper.id = elementId + '-wrapper'; 
+            wrapper.classList.add('ui-element-wrapper', 'group');
+            wrapper.style.zIndex = baseZIndex; 
+            wrapper.dataset.name = name;
+            wrapper.dataset.baseZIndex = baseZIndex;
+            wrapper.dataset.centered = 'false'; // NEW: Default to not centered
+            
+            // Initial size and random position
+            wrapper.style.width = `150px`;
+            wrapper.style.height = `50px`;
+            
+            const canvasRect = canvas.getBoundingClientRect();
+            const randomX = Math.floor(Math.random() * (canvasRect.width * 0.4)) + canvasRect.width * 0.3; // Start near center
+            const randomY = Math.floor(Math.random() * (canvasRect.height * 0.4)) + canvasRect.height * 0.3;
 
-    function switchLang() {
-      const lang = document.getElementById("langSelect").value;
-      const t = texts[lang];
-      localStorage.setItem("lang", lang); // บันทึกภาษาทันที
-      document.getElementById("title").textContent = t.title;
-      document.getElementById("pageTitle").textContent = t.title;
-      document.getElementById("labelMaterial").textContent = t.materials;
-      document.getElementById("labelLabor").textContent = t.laborSection;
-      document.getElementById("addBtn").textContent = t.addMaterial;
-      document.getElementById("calcBtn").textContent = t.calc;
-      document.getElementById("resetBtn").textContent = t.reset;
-      document.getElementById("workers").placeholder = t.workers;
-      document.getElementById("wage").placeholder = t.wage;
-      document.getElementById("water").placeholder = t.water;
-      document.getElementById("electricity").placeholder = t.electricity;
-      document.querySelectorAll("#materials .input-row").forEach(row => {
-        row.children[0].placeholder = t.matName;
-        row.children[1].placeholder = t.matQty;
-        row.children[2].placeholder = t.matCost;
-        row.children[3].placeholder = t.matProfit;
-        if (row.children[4]) row.children[4].textContent = t.deleteBtn;
-      });
-      updateThemeButton();
-      calculate(); // อัปเดตผลลัพธ์ทันทีเมื่อเปลี่ยนภาษา
-    }
+            wrapper.style.left = `${Math.max(20, randomX)}px`;
+            wrapper.style.top = `${Math.max(20, randomY)}px`;
 
-    function applySystemTheme() {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (prefersDark) document.body.classList.add('dark');
-      else document.body.classList.remove('dark');
-      updateThemeButton();
-    }
+            wrapper.addEventListener('dblclick', handleDoubleClick);
 
-    function updateThemeButton() {
-      const t = texts[document.getElementById("langSelect").value];
-      const saved = localStorage.getItem("theme");
-      if (saved === "dark") {
-        document.body.classList.add("dark");
-        document.getElementById("themeBtn").textContent = t.lightMode;
-      } else if (saved === "light") {
-        document.body.classList.remove("dark");
-        document.getElementById("themeBtn").textContent = t.darkMode;
-      } else {
-        applySystemTheme();
-        document.getElementById("themeBtn").textContent = t.autoMode;
-      }
-    }
 
-    function toggleDarkMode() {
-      const saved = localStorage.getItem("theme");
-      if (saved === "dark") {
-        localStorage.setItem("theme", "light");
-      } else if (saved === "light") {
-        localStorage.removeItem("theme");
-      } else {
-        localStorage.setItem("theme", "dark");
-      }
-      updateThemeButton();
-    }
+            // 2. Create the inner button (the actual UI component)
+            const button = document.createElement('button');
+            button.id = elementId; 
+            button.classList.add('ui-button'); 
+            button.textContent = name;
+            button.style.backgroundColor = initialBgColor;
+            button.style.color = initialTextColor;
+            button.style.fontSize = '16px'; 
+            button.style.borderRadius = '8px'; 
+            wrapper.appendChild(button);
 
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applySystemTheme);
+            // 3. Create resize handles
+            const handles = ['tl', 'tr', 'br', 'bl'];
+            handles.forEach(pos => {
+                const handle = document.createElement('div');
+                handle.classList.add('resize-handle', `handle-${pos}`, 'opacity-0', 'group-hover:opacity-100');
+                handle.dataset.handle = pos;
+                wrapper.appendChild(handle);
+            });
 
-    function addMaterial(name="", qty="", cost="", profit="") {
-      materialCount++;
-      const t = texts[document.getElementById("langSelect").value];
-      const div = document.createElement("div");
-      div.className = "input-row";
-      div.id = "material-" + materialCount;
-      div.innerHTML = `
-        <input type="text" placeholder="${t.matName}" value="${name}" style="flex:2">
-        <input type="text" placeholder="${t.matQty}" value="${qty}">
-        <input type="number" placeholder="${t.matCost}" value="${cost}">
-        <input type="number" placeholder="${t.matProfit}" value="${profit}">
-        <button class="delete" onclick="deleteMaterial(${materialCount})">${t.deleteBtn}</button>
-      `;
-      document.getElementById("materials").appendChild(div);
-    }
+            canvas.appendChild(wrapper);
+            
+            updateLayers();
+            updateHtmlOutput();
 
-    function deleteMaterial(id) {
-      document.getElementById("material-" + id)?.remove();
-      saveData();
-    }
+            setActiveElement(wrapper);
+        }
+        
+        function createButton() {
+             const name = `Action ${elementCounter + 1}`;
+             // Default colors: Blue BG, White Text
+             createNewElement(name, 'rgb(59, 130, 246)', 'rgb(255, 255, 255)'); 
+        }
 
-    function calculate() {
-      const lang = document.getElementById("langSelect").value;
-      const t = texts[lang];
+        function createUIElement() {
+            const name = `Generic UI ${elementCounter + 1}`;
+            // Default colors: Gray BG, Dark Text
+            createNewElement(name, 'rgb(243, 244, 246)', 'rgb(55, 65, 81)');
+        }
 
-      const workers = parseFloat(document.getElementById("workers").value) || 0;
-      const wage = parseFloat(document.getElementById("wage").value) || 0;
-      const water = parseFloat(document.getElementById("water").value) || 0;
-      const electricity = parseFloat(document.getElementById("electricity").value) || 0;
+        /**
+         * Handles the double-click event to enable text editing on the button.
+         */
+        function handleDoubleClick(e) {
+            e.stopPropagation(); 
+            
+            const wrapper = e.currentTarget; 
+            const button = wrapper.querySelector('.ui-button');
+            const currentText = button.textContent.trim();
 
-      let materialCost = 0;
-      let profitTotal = 0;
-      let hasMaterials = false;
+            if (isDragging || isResizing) return;
+            if (button.querySelector('input')) return;
 
-      document.querySelectorAll("#materials .input-row").forEach(row => {
-        const qtyStr = row.children[1].value.trim();
-        const cost = parseFloat(row.children[2].value) || 0;
-        const profit = parseFloat(row.children[3].value) || 0;
-        if (cost > 0 || profit > 0 || qtyStr) hasMaterials = true;
-        let qty = parseFloat(qtyStr) || 1;
-        if (isNaN(qty) && qtyStr) { const m = qtyStr.match(/[\d.]+/); qty = m ? parseFloat(m[0]) : 1; }
-        materialCost += qty * cost;
-        profitTotal += qty * profit;
-      });
+            // Set active element before showing input
+            setActiveElement(wrapper); 
 
-      const laborCost = workers * wage;
-      const otherCost = water + electricity;
-      const totalCost = laborCost + otherCost + materialCost;
-      const sellingPrice = totalCost + profitTotal;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentText;
+            input.className = 'w-full h-full text-center bg-white/90 font-bold border-2 border-blue-500 rounded-lg p-1 focus:outline-none';
+            input.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.5)'; 
 
-      let lines = [];
-      if (laborCost > 0) lines.push(`${t.labor}: <strong>${formatMoney(laborCost)}</strong>`);
-      if (otherCost > 0) lines.push(`${t.other}: <strong>${formatMoney(otherCost)}</strong>`);
-      if (materialCost > 0 || hasMaterials) lines.push(`${t.material}: <strong>${formatMoney(materialCost)}</strong>`);
-      if (lines.length > 0) lines.push(`${t.total}: <strong>${formatMoney(totalCost)}</strong>`);
-      if (profitTotal > 0) lines.push(`<br>${t.profitText}: <strong>${formatMoney(profitTotal)}</strong>`);
+            // Copy button's dynamic styles to the input for better visual feedback
+            input.style.color = button.style.color;
+            input.style.fontSize = button.style.fontSize; 
+            
+            button.textContent = '';
+            button.appendChild(input);
 
-      const resultHTML = lines.length > 0
-        ? lines.join("<br>") + `<br><br><strong style="font-size:1.4em;color:#4CAF50;">${t.sale}: ${formatMoney(sellingPrice)}</strong>`
-        : `<span style="color:#999;">${t.empty}</span>`;
+            input.focus();
 
-      document.getElementById("result").innerHTML = resultHTML;
-      saveData();
-    }
+            const saveChanges = () => {
+                const newText = input.value.trim() || "Button"; 
+                
+                button.textContent = newText;
+                
+                wrapper.dataset.name = newText; 
+                updateLayers(); 
+                updateHtmlOutput();
+            };
 
-    function saveData() {
-      const data = {
-        lang: document.getElementById("langSelect").value,
-        workers: document.getElementById("workers").value || "",
-        wage: document.getElementById("wage").value || "",
-        water: document.getElementById("water").value || "",
-        electricity: document.getElementById("electricity").value || "",
-        materials: []
-      };
-      document.querySelectorAll("#materials .input-row").forEach(row => {
-        data.materials.push({
-          name: row.children[0].value,
-          qty: row.children[1].value,
-          cost: row.children[2].value,
-          profit: row.children[3].value
-        });
-      });
-      localStorage.setItem("calcData", JSON.stringify(data));
-    }
+            input.addEventListener('blur', saveChanges);
 
-    function loadData() {
-      const saved = localStorage.getItem("calcData");
-      if (!saved) return;
-      const data = JSON.parse(saved);
+            input.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    input.blur(); 
+                }
+            });
+        }
 
-      // โหลดภาษา
-      if (data.lang) {
-        document.getElementById("langSelect").value = data.lang;
-      }
 
-      // ใช้ภาษาที่โหลดมาก่อน แล้วค่อย switchLang
-      switchLang();
+        // --- Properties Panel Management ---
 
-      document.getElementById("workers").value = data.workers || "";
-      document.getElementById("wage").value = data.wage || "";
-      document.getElementById("water").value = data.water || "";
-      document.getElementById("electricity").value = data.electricity || "";
-      document.getElementById("materials").innerHTML = "";
-      (data.materials || []).forEach(m => addMaterial(m.name, m.qty, m.cost, m.profit));
-      if ((!data.materials || data.materials.length === 0) && !data.workers && !data.wage && !data.water && !data.electricity) {
-        addMaterial();
-      }
-    }
+        /**
+         * Loads the properties of the active element into the panel inputs.
+         */
+        function updatePropertiesPanel() {
+            if (!activeElement) {
+                noSelectionMessage.classList.remove('hidden');
+                propertiesControls.classList.add('hidden');
+                return;
+            }
 
-    function resetAll() {
-      if (confirm("ลบข้อมูลทั้งหมดหรือไม่? / Clear all data?")) {
-        localStorage.removeItem("calcData");
-        location.reload();
-      }
-    }
+            const button = activeElement.querySelector('.ui-button');
 
-    // เริ่มต้นแอป
-    window.onload = () => {
-      loadData();           // โหลดข้อมูล + ภาษา
-      updateThemeButton();  // ตั้งค่าธีมตามระบบหรือที่บันทึกไว้
-      calculate();          // แสดงผลลัพธ์ทันทีถ้ามีข้อมูล
-    };
-  </script>
+            noSelectionMessage.classList.add('hidden');
+            propertiesControls.classList.remove('hidden');
+
+            // 1. Text
+            propText.value = button.textContent.trim();
+
+            // 2. Size
+            propWidth.value = Math.round(activeElement.offsetWidth);
+            propHeight.value = Math.round(activeElement.offsetHeight);
+
+            // 3. Colors (Convert RGB/CSS names to Hex for color picker)
+            propBgColor.value = rgbToHex(button.style.backgroundColor);
+            propTextColor.value = rgbToHex(button.style.color);
+            
+            // 4. Font Size (Extract PX value)
+            const currentFontSize = parseFloat(button.style.fontSize.replace('px', '')) || 16;
+            propFontSize.value = currentFontSize;
+        }
+
+        /**
+         * Handles changes from the properties panel inputs.
+         */
+        function handlePropertyChange(e) {
+            if (!activeElement) return;
+
+            const button = activeElement.querySelector('.ui-button');
+            const propId = e.target.id;
+            const value = e.target.value;
+
+            switch (propId) {
+                case 'prop-text':
+                    button.textContent = value;
+                    activeElement.dataset.name = value;
+                    updateLayers(); // Updates name in layer panel
+                    break;
+                case 'prop-width':
+                    activeElement.style.width = `${Math.max(50, parseInt(value) || 50)}px`;
+                    break;
+                case 'prop-height':
+                    activeElement.style.height = `${Math.max(30, parseInt(value) || 30)}px`;
+                    break;
+                case 'prop-bg-color':
+                    button.style.backgroundColor = value; // Hex value works in modern browsers
+                    break;
+                case 'prop-text-color':
+                    button.style.color = value;
+                    break;
+                case 'prop-font-size':
+                    button.style.fontSize = `${Math.max(8, parseInt(value) || 16)}px`;
+                    break;
+            }
+
+            updateHtmlOutput();
+        }
+
+        /**
+         * Toggles the responsive centering state of the active element. (NEW FUNCTION)
+         */
+        function toggleResponsiveCentering() {
+            if (!activeElement) return;
+
+            const isCentered = activeElement.dataset.centered === 'true';
+
+            if (isCentered) {
+                // --- FIX 1: TURN OFF Centering (Disable) ---
+                
+                // 1. Read the current visual position (using offsetLeft/Top while centered)
+                // This gives the element's actual top-left corner position relative to the canvas.
+                const currentLeftPx = activeElement.offsetLeft;
+                const currentTopPx = activeElement.offsetTop;
+                
+                // 2. Remove centering dataset and styles
+                activeElement.dataset.centered = 'false';
+                
+                // Crucial: Must remove transform first, before setting fixed position
+                activeElement.style.removeProperty('transform'); 
+                
+                // Remove percentage position properties (they will conflict with pixel position)
+                activeElement.style.removeProperty('left'); 
+                activeElement.style.removeProperty('top'); 
+                
+                // 3. Apply the current visual position as fixed pixels to keep it where it is
+                activeElement.style.left = `${currentLeftPx}px`;
+                activeElement.style.top = `${currentTopPx}px`;
+                
+                activeElement.style.cursor = 'grab';
+
+            } else {
+                // --- TURN ON Centering (Enable) ---
+                activeElement.dataset.centered = 'true';
+                
+                // Apply centering CSS properties
+                activeElement.style.left = '50%';
+                activeElement.style.top = '50%';
+                activeElement.style.transform = 'translate(-50%, -50%)'; 
+                activeElement.style.cursor = 'default';
+            }
+
+            // Update visual state and output
+            updateCenterToggleVisual(activeElement.dataset.centered === 'true');
+            activeElement.classList.toggle('active', true); // Keep active state
+            updateHtmlOutput();
+        }
+
+        // --- Layer Management ---
+
+        /**
+         * Finds the list item the dragged element should be placed BEFORE.
+         */
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('li[data-element-id]:not(.opacity-50)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2; 
+                
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: -Infinity }).element; 
+        }
+
+        /**
+         * Handles when an item is dragged over the layer panel.
+         */
+        function handleDragOver(e) {
+            e.preventDefault(); 
+            e.dataTransfer.dropEffect = 'move';
+
+            if (!draggedLi) return;
+            
+            // Find the element to insert BEFORE
+            const afterElement = getDragAfterElement(layerPanel, e.clientY);
+            
+            if (afterElement == null) {
+                layerPanel.appendChild(draggedLi);
+            } else {
+                layerPanel.insertBefore(draggedLi, afterElement);
+            }
+        }
+
+        /**
+         * Handles when the drag interaction is finished (item is dropped).
+         */
+        function handleDrop(e) {
+            e.preventDefault();
+            reorderElements(); 
+        }
+        
+        function handleDragStart(e) {
+            draggedLi = e.currentTarget;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', draggedLi.dataset.elementId);
+            setTimeout(() => draggedLi.classList.add('opacity-50', 'border-dashed', 'border-blue-500'), 0); 
+        }
+
+        function handleDragEnd(e) {
+            if (draggedLi) {
+                draggedLi.classList.remove('opacity-50', 'border-dashed', 'border-blue-500');
+            }
+            draggedLi = null;
+            updateLayerHighlight();
+        }
+
+        /**
+         * Recalculates and sets the Z-index based on the order in the layer panel.
+         */
+        function reorderElements() {
+            const listItems = Array.from(layerPanel.querySelectorAll('li[data-element-id]'));
+            const totalItems = canvas.querySelectorAll('.ui-element-wrapper').length;
+            
+            listItems.forEach((li, index) => {
+                // Item at index 0 (top) gets Z = totalItems (highest).
+                const zIndex = totalItems - index; 
+                const wrapperId = li.dataset.elementId; 
+                const wrapper = document.getElementById(wrapperId);
+
+                if (wrapper && wrapper !== activeElement) { 
+                    wrapper.style.zIndex = zIndex;
+                    
+                    li.innerHTML = `<span class="font-medium">${li.dataset.name}</span> <span class="text-xs text-gray-400"> (Z: ${zIndex})</span>`;
+                } else if (wrapper === activeElement) {
+                     // Keep Z-index boosted for active element if manipulation is happening
+                     if (!isDragging && !isResizing) {
+                        wrapper.style.zIndex = zIndex; 
+                     }
+                }
+            });
+
+            if (activeElement) {
+                updateLayerHighlight(); 
+            }
+            
+            updateHtmlOutput(); 
+        }
+
+        /**
+         * Rebuilds the layer panel if needed and attaches all listeners.
+         */
+        function updateLayers() {
+            const elements = Array.from(canvas.querySelectorAll('.ui-element-wrapper'));
+
+            if (elements.length === 0) {
+                layerPanel.innerHTML = '<li class="p-2 text-gray-500 italic">No elements yet.</li>';
+                return;
+            }
+
+            const existingLis = layerPanel.querySelectorAll('li[data-element-id]').length;
+            if (elements.length !== existingLis) {
+                 // Rebuild list only if structure changed (add/remove)
+                layerPanel.innerHTML = '';
+                
+                elements.sort((a, b) => parseInt(b.dataset.baseZIndex) - parseInt(a.dataset.baseZIndex));
+
+                elements.forEach(el => {
+                    const li = document.createElement('li');
+                    li.classList.add('p-2', 'rounded-md', 'border', 'cursor-grab', 'transition', 'duration-100', 'truncate', 'text-gray-700', 'bg-white', 'border-gray-200');
+                    li.dataset.elementId = el.id;
+                    li.draggable = true; 
+                    li.dataset.name = el.dataset.name;
+                    
+                    li.innerHTML = `<span class="font-medium">${li.dataset.name}</span> <span class="text-xs text-gray-400"> (Z: ${el.style.zIndex})</span>`;
+
+                    // Selection listener
+                    li.addEventListener('click', () => {
+                        const targetEl = document.getElementById(el.id);
+                        if (targetEl) {
+                            setActiveElement(targetEl);
+                        }
+                    });
+                    
+                    // Drag event listeners
+                    li.addEventListener('dragstart', handleDragStart);
+                    li.addEventListener('dragend', handleDragEnd);
+
+                    layerPanel.appendChild(li);
+                });
+            }
+           
+            // Attach dragover and drop listeners to the parent UL
+            layerPanel.removeEventListener('dragover', handleDragOver);
+            layerPanel.removeEventListener('drop', handleDrop);
+            layerPanel.addEventListener('dragover', handleDragOver);
+            layerPanel.addEventListener('drop', handleDrop);
+
+            reorderElements(); 
+            updateLayerHighlight();
+        }
+
+        /**
+         * Highlights the active element in the layer panel.
+         */
+        function updateLayerHighlight() {
+            layerPanel.querySelectorAll('li[data-element-id]').forEach(li => {
+                const wrapperId = li.dataset.elementId;
+                const el = document.getElementById(wrapperId);
+                const currentZ = el ? el.style.zIndex : 'N/A';
+                
+                const defaultText = `<span class="font-medium">${li.dataset.name}</span> <span class="text-xs text-gray-400"> (Z: ${currentZ})</span>`;
+
+                if (activeElement && activeElement.id === wrapperId) {
+                    li.classList.add('bg-blue-100', 'border-blue-500', 'text-blue-800', 'font-semibold');
+                    li.classList.remove('bg-white', 'border-gray-200', 'text-gray-700');
+                    
+                    // Display the current Z-index, potentially boosted (1000)
+                    li.innerHTML = `<span class="font-medium">${li.dataset.name}</span> <span class="text-xs text-blue-500 font-extrabold"> (Z: ${currentZ})</span>`;
+                    
+                } else {
+                    li.classList.remove('bg-blue-100', 'border-blue-500', 'text-blue-800', 'font-semibold');
+                    li.classList.add('bg-white', 'border-gray-200', 'text-gray-700');
+                    
+                    li.innerHTML = defaultText;
+                }
+            });
+        }
+        
+        /**
+         * Handles copying the HTML output to the clipboard.
+         */
+        function handleCopyHtml() {
+            htmlOutput.select();
+            htmlOutput.setSelectionRange(0, 99999); 
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    copyMessage.textContent = 'HTML Copied!';
+                    copyMessage.classList.remove('hidden');
+                    setTimeout(() => copyMessage.classList.add('hidden'), 2000);
+                } else {
+                     copyMessage.textContent = 'Copy failed. Please manually copy the text.';
+                     copyMessage.classList.remove('hidden', 'text-green-600');
+                     copyMessage.classList.add('text-red-600');
+                     setTimeout(() => {
+                        copyMessage.classList.add('hidden');
+                        copyMessage.classList.remove('text-red-600');
+                        copyMessage.classList.add('text-green-600');
+                     }, 3000);
+                }
+            } catch (err) {
+                console.error('Copy command failed:', err);
+                copyMessage.textContent = 'Copy failed. Please manually copy the text.';
+                copyMessage.classList.remove('hidden', 'text-green-600');
+                copyMessage.classList.add('text-red-600');
+                 setTimeout(() => {
+                    copyMessage.classList.add('hidden');
+                    copyMessage.classList.remove('text-red-600');
+                    copyMessage.classList.add('text-green-600');
+                 }, 3000);
+            }
+        }
+
+
+        // --- Drag & Resize Handlers (Canvas Interaction) ---
+
+        /**
+         * Starts the dragging or resizing process.
+         */
+        function startInteraction(e) {
+            const isTouchEvent = e.type.startsWith('touch');
+            const event = isTouchEvent ? e.touches[0] : e;
+            const target = e.target;
+
+            if (target.tagName === 'INPUT' || target.closest('.ui-button')?.querySelector('input')) return;
+
+            if (target.classList.contains('resize-handle')) {
+                // Resize start
+                e.preventDefault(); 
+                isResizing = true;
+                activeHandle = target;
+                activeElement = target.parentElement;
+                setActiveElement(activeElement);
+                
+                // Disable centering if trying to resize
+                if (activeElement.dataset.centered === 'true') {
+                    toggleResponsiveCentering(); 
+                }
+
+                activeElement.style.zIndex = 1000; // Z-index boost
+                updateLayerHighlight(); 
+
+                startWidth = activeElement.offsetWidth;
+                startHeight = activeElement.offsetHeight;
+                startLeft = activeElement.offsetLeft;
+                startTop = activeElement.offsetTop;
+                startX = event.clientX;
+                startY = event.clientY;
+
+                activeElement.style.transition = 'none';
+
+            } else if (target.closest('.ui-element-wrapper')) {
+                const wrapper = target.closest('.ui-element-wrapper');
+                
+                // Check if dragging is allowed (not responsively centered)
+                if (wrapper.dataset.centered === 'true') {
+                    // If centered, don't start dragging, just set active.
+                    setActiveElement(wrapper);
+                    return; 
+                }
+
+                // Drag start
+                if (wrapper.contains(target) && (target === wrapper || target.classList.contains('ui-button'))) {
+                    
+                    isDragging = true;
+                    activeElement = wrapper;
+                    setActiveElement(activeElement);
+
+                    activeElement.style.zIndex = 1000; // Z-index boost
+                    updateLayerHighlight(); 
+                    
+                    startX = event.clientX;
+                    startY = event.clientY;
+                    startLeft = activeElement.offsetLeft;
+                    startTop = activeElement.offsetTop;
+
+                    activeElement.style.transition = 'none';
+                }
+            } else {
+                // Clicked outside the elements
+                setActiveElement(null);
+            }
+        }
+
+        /**
+         * Handles the dragging or resizing logic.
+         */
+        function moveInteraction(e) {
+            if (!activeElement || (!isDragging && !isResizing)) return;
+
+            // FIX 2: Prevent default action (scrolling/text selection) to stop the "วาป" or jumping
+            e.preventDefault(); 
+            
+            const isTouchEvent = e.type.startsWith('touch');
+            const event = isTouchEvent ? e.touches[0] : e;
+
+            const dx = event.clientX - startX;
+            const dy = event.clientY - startY;
+
+            const canvasRect = canvas.getBoundingClientRect();
+
+            if (isDragging) {
+                // --- Dragging Logic ---
+                let newLeft = startLeft + dx;
+                let newTop = startTop + dy;
+
+                // Boundary checks
+                newLeft = Math.max(0, Math.min(newLeft, canvasRect.width - activeElement.offsetWidth));
+                newTop = Math.max(0, Math.min(newTop, canvasRect.height - activeElement.offsetHeight));
+
+                // Always set as pixel values
+                activeElement.style.left = `${newLeft}px`;
+                activeElement.style.top = `${newTop}px`;
+                
+                // Crucial: remove transform if it somehow remains (safety measure)
+                activeElement.style.removeProperty('transform');
+
+            } else if (isResizing) {
+                // --- Resizing Logic ---
+                const minSize = 50;
+                const handle = activeHandle.dataset.handle;
+                let newWidth = startWidth;
+                let newHeight = startHeight;
+                let newLeft = startLeft;
+                let newTop = startTop;
+
+                switch (handle) {
+                    case 'br': 
+                        newWidth = Math.max(minSize, startWidth + dx);
+                        newHeight = Math.max(minSize, startHeight + dy);
+                        break;
+                    case 'bl': 
+                        newWidth = Math.max(minSize, startWidth - dx);
+                        newHeight = Math.max(minSize, startHeight + dy);
+                        newLeft = startLeft + (startWidth - newWidth);
+                        break;
+                    case 'tr': 
+                        newWidth = Math.max(minSize, startWidth + dx);
+                        newHeight = Math.max(minSize, startHeight - dy);
+                        newTop = startTop + (startHeight - newHeight);
+                        break;
+                    case 'tl': 
+                        newWidth = Math.max(minSize, startWidth - dx);
+                        newHeight = Math.max(minSize, startHeight - dy);
+                        newLeft = startLeft + (startWidth - newWidth);
+                        newTop = startTop + (startHeight - newHeight);
+                        break;
+                }
+                
+                // Boundary checks (prevent element from leaving the canvas)
+                if (newLeft < 0) { newWidth -= (0 - newLeft); newLeft = 0; }
+                if (newTop < 0) { newHeight -= (0 - newTop); newTop = 0; }
+                if (newLeft + newWidth > canvasRect.width) { newWidth = canvasRect.width - newLeft; }
+                if (newTop + newHeight > canvasRect.height) { newHeight = canvasRect.height - newTop; }
+                
+                newWidth = Math.max(minSize, newWidth);
+                newHeight = Math.max(minSize, newHeight);
+
+                // Always set as pixel values
+                activeElement.style.width = `${newWidth}px`;
+                activeElement.style.height = `${newHeight}px`;
+                activeElement.style.left = `${newLeft}px`;
+                activeElement.style.top = `${newTop}px`;
+                
+                activeElement.style.removeProperty('transform'); 
+
+                // Update properties panel immediately during resize
+                propWidth.value = Math.round(newWidth);
+                propHeight.value = Math.round(newHeight);
+            }
+        }
+
+        /**
+         * Ends the dragging or resizing process and updates HTML output.
+         */
+        function endInteraction() {
+            if (activeElement) {
+                activeElement.style.transition = 'all 0.1s ease-in-out';
+                
+                reorderElements(); 
+                updatePropertiesPanel(); // Final update to sync properties panel
+                updateHtmlOutput(); 
+            }
+            isDragging = false;
+            isResizing = false;
+            activeHandle = null;
+        }
+
+
+        // --- Initialization ---
+
+        function init() {
+            // Assign DOM elements
+            addButton = document.getElementById('add-button');
+            addUI = document.getElementById('add-ui'); 
+            centerElementToggle = document.getElementById('center-element-toggle'); 
+            htmlOutput = document.getElementById('html-output');
+            copyHtmlButton = document.getElementById('copy-html-button');
+            copyMessage = document.getElementById('copy-message');
+
+            // Properties Panel Elements 
+            propertiesPanel = document.getElementById('properties-panel');
+            noSelectionMessage = document.getElementById('no-selection-message');
+            propertiesControls = document.getElementById('properties-controls');
+            propText = document.getElementById('prop-text');
+            propWidth = document.getElementById('prop-width');
+            propHeight = document.getElementById('prop-height');
+            propBgColor = document.getElementById('prop-bg-color');
+            propTextColor = document.getElementById('prop-text-color');
+            propFontSize = document.getElementById('prop-font-size');
+
+
+            // Button handlers
+            if (addButton) addButton.addEventListener('click', createButton); 
+            if (addUI) addUI.addEventListener('click', createUIElement); 
+            if (centerElementToggle) centerElementToggle.addEventListener('click', toggleResponsiveCentering); 
+            if (copyHtmlButton) copyHtmlButton.addEventListener('click', handleCopyHtml);
+
+            // Property input listeners
+            propText.addEventListener('input', handlePropertyChange);
+            propWidth.addEventListener('input', handlePropertyChange);
+            propHeight.addEventListener('input', handlePropertyChange);
+            propBgColor.addEventListener('input', handlePropertyChange);
+            propTextColor.addEventListener('input', handlePropertyChange);
+            propFontSize.addEventListener('input', handlePropertyChange);
+
+            // Setup global mouse and touch listeners for drag/resize
+            const interactionEvents = [
+                { start: 'mousedown', move: 'mousemove', end: 'mouseup' },
+                { start: 'touchstart', move: 'touchmove', end: 'touchend' }
+            ];
+
+            interactionEvents.forEach(e => {
+                document.addEventListener(e.start, startInteraction);
+                document.addEventListener(e.move, moveInteraction);
+                document.addEventListener(e.end, endInteraction);
+            });
+
+            // Handle canvas click to deselect
+            canvas.addEventListener('click', (e) => {
+                if (e.target.id === 'editor-canvas' && !e.target.querySelector('input')) {
+                    setActiveElement(null);
+                }
+            });
+
+             // Create one button initially for testing
+            createButton();
+        }
+
+        // Wait for the DOM to be fully loaded before initializing
+        window.onload = init;
+
+    </script>
 </body>
 </html>
