@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HTML UI Editor with Design Controls</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom styles for the editor canvas */
@@ -102,8 +103,10 @@
 
     <div class="flex flex-col lg:flex-row gap-6">
 
+        <!-- Sidebar: Controls -->
         <div class="lg:w-1/4 space-y-6">
 
+            <!-- Toolbox -->
             <div class="bg-white p-4 rounded-xl shadow-lg">
                 <h2 class="text-xl font-semibold mb-3 text-gray-700">Toolbox</h2>
                 <div class="space-y-2">
@@ -111,14 +114,16 @@
                         + Add Button
                     </button>
                     <button id="add-ui" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md">
-                        + Add UI
+                        + UI
                     </button>
+                    <!-- TOGGLE BUTTON: Will be updated by JS to show Enable/Disable -->
                     <button id="center-element-toggle" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition duration-150 shadow-md disabled:opacity-50" disabled>
                         Enable Responsive Centering
                     </button>
                 </div>
             </div>
             
+            <!-- Element Properties Panel -->
             <div id="properties-panel" class="bg-white p-4 rounded-xl shadow-lg transition-opacity duration-300">
                 <h2 class="text-xl font-semibold mb-3 text-gray-700">Element Properties</h2>
                 <div id="no-selection-message" class="text-gray-500 italic">
@@ -126,11 +131,13 @@
                 </div>
 
                 <div id="properties-controls" class="space-y-4 hidden">
+                    <!-- Text Content -->
                     <div>
                         <label for="prop-text" class="block text-sm font-medium text-gray-700">Text Content</label>
                         <input type="text" id="prop-text" class="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
 
+                    <!-- Size -->
                     <div class="flex gap-4">
                         <div class="w-1/2">
                             <label for="prop-width" class="block text-sm font-medium text-gray-700">Width (px)</label>
@@ -142,6 +149,7 @@
                         </div>
                     </div>
 
+                    <!-- Colors -->
                     <div class="flex gap-4">
                         <div class="w-1/2">
                             <label for="prop-bg-color" class="block text-sm font-medium text-gray-700">Background Color</label>
@@ -153,6 +161,7 @@
                         </div>
                     </div>
 
+                    <!-- Font Size -->
                     <div>
                         <label for="prop-font-size" class="block text-sm font-medium text-gray-700">Font Size (px)</label>
                         <input type="number" id="prop-font-size" min="8" max="48" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
@@ -160,6 +169,7 @@
                 </div>
             </div>
 
+            <!-- Layer Panel -->
             <div class="bg-white p-4 rounded-xl shadow-lg">
                 <h2 class="text-xl font-semibold mb-3 text-gray-700">Layers (Z-Index)</h2>
                 <ul id="layer-panel" class="space-y-2 text-sm">
@@ -167,6 +177,7 @@
                 </ul>
             </div>
 
+            <!-- HTML Code Output Panel -->
             <div class="bg-white p-4 rounded-xl shadow-lg">
                 <h2 class="text-xl font-semibold mb-3 text-gray-700">HTML Output</h2>
                 <textarea id="html-output" rows="8" class="w-full p-2 border border-gray-300 rounded-lg text-xs font-mono bg-gray-50" readonly></textarea>
@@ -177,10 +188,12 @@
             </div>
         </div>
 
+        <!-- Editor Canvas -->
         <div class="lg:w-3/4 bg-white p-2 rounded-xl shadow-lg border-4 border-dashed border-gray-200">
             <h2 class="text-xl font-semibold p-2 mb-2 text-gray-700">Design Canvas</h2>
             <div id="editor-canvas" class="rounded-lg shadow-inner bg-white">
-                </div>
+                <!-- UI Elements will be appended here -->
+            </div>
         </div>
 
     </div>
@@ -190,11 +203,10 @@
         const canvas = document.getElementById('editor-canvas');
         const layerPanel = document.getElementById('layer-panel');
 
-        let addButton, addUI, centerElementToggle, htmlOutput, copyHtmlButton, copyMessage; 
+        let addButton, addUI, centerElementToggle, htmlOutput, copyHtmlButton, copyMessage; // centerElementToggle
         let propertiesPanel, noSelectionMessage, propertiesControls;
         let propText, propWidth, propHeight, propBgColor, propTextColor, propFontSize;
-        
-        // Drag/Resize variables
+
         let activeElement = null; 
         let elementCounter = 0;
         let isDragging = false;
@@ -251,8 +263,6 @@
     outline: none;
     padding: 0;
     margin: 0;
-    /* Optional: Ensure text wraps nicely if using button as a generic container */
-    text-align: center; 
 }`;
 
             elements.forEach(el => {
@@ -274,7 +284,6 @@
                     wrapperStyles.push(`transform: translate(-50%, -50%)`);
                 } else {
                     // FIX: Read the explicit style.left and style.top set by the drag interaction
-                    // Fallback to offsetLeft/Top if style isn't explicitly set (e.g. fresh element)
                     const currentLeft = el.style.left || `${el.offsetLeft}px`;
                     const currentTop = el.style.top || `${el.offsetTop}px`;
                     
@@ -298,7 +307,7 @@
                 // Use a simple container class for the output
                 const buttonHtml = `<button id="${elementId}" class="ui-button" style="${buttonStyles || ''}">${content}</button>`;
 
-                innerHtml += `<div class="ui-element-wrapper" style="${wrapperStylesString}">\n    ${buttonHtml}\n</div>\n\n`;
+                innerHtml += `<div class="ui-element-wrapper" style="${wrapperStylesString}">\n  ${buttonHtml}\n</div>\n\n`;
             });
 
             // Added basic styling for body to ensure the relative positioning works for the absolute children
@@ -312,7 +321,7 @@
 ${baseCss.trim()}
 
 /* IMPORTANT: Ensure the body/container is positioned relative or uses min-height: 100vh 
-    so the absolute elements have a reference point. */
+   so the absolute elements have a reference point. */
 body {
     margin: 0; 
     padding: 0; 
@@ -358,7 +367,7 @@ ${innerHtml.trim()}
                 }
                 
                 centerElementToggle.disabled = false; // Enable center toggle
-                updateCenterToggleVisual(activeElement.dataset.centered === 'true'); 
+                updateCenterToggleVisual(activeElement.dataset.centered === 'true'); // <--- UPDATED
                 
                 updateLayerHighlight();
                 updatePropertiesPanel(); // Load properties for the selected element
@@ -375,7 +384,7 @@ ${innerHtml.trim()}
          */
         function updateCenterToggleVisual(isCentered) {
             if (isCentered) {
-                // Centered ON: Show green 'Disable' button
+                // Centered ON: Show red/green 'Disable' button
                 centerElementToggle.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
                 centerElementToggle.classList.add('bg-green-500', 'hover:bg-green-600');
                 centerElementToggle.textContent = 'Disable Responsive Centering';
@@ -410,16 +419,13 @@ ${innerHtml.trim()}
             wrapper.style.height = `50px`;
             
             const canvasRect = canvas.getBoundingClientRect();
-            // Start near center
-            const randomX = Math.floor(Math.random() * (canvasRect.width * 0.4)) + canvasRect.width * 0.3; 
+            const randomX = Math.floor(Math.random() * (canvasRect.width * 0.4)) + canvasRect.width * 0.3; // Start near center
             const randomY = Math.floor(Math.random() * (canvasRect.height * 0.4)) + canvasRect.height * 0.3;
 
             wrapper.style.left = `${Math.max(20, randomX)}px`;
             wrapper.style.top = `${Math.max(20, randomY)}px`;
 
             wrapper.addEventListener('dblclick', handleDoubleClick);
-            // Attach drag/resize handlers
-            wrapper.addEventListener('pointerdown', handlePointerDown);
 
 
             // 2. Create the inner button (the actual UI component)
@@ -437,7 +443,7 @@ ${innerHtml.trim()}
             const handles = ['tl', 'tr', 'br', 'bl'];
             handles.forEach(pos => {
                 const handle = document.createElement('div');
-                handle.classList.add('resize-handle', `handle-${pos}`, 'opacity-0', 'group-hover:opacity-100', 'active:opacity-100');
+                handle.classList.add('resize-handle', `handle-${pos}`, 'opacity-0', 'group-hover:opacity-100');
                 handle.dataset.handle = pos;
                 wrapper.appendChild(handle);
             });
@@ -579,18 +585,6 @@ ${innerHtml.trim()}
                     break;
             }
 
-            // If dimensions are changed, we must re-enable drag if centering was disabled
-            if (propId === 'prop-width' || propId === 'prop-height') {
-                if (activeElement.dataset.centered === 'true') {
-                    // Update bounds visually without disabling centering
-                    // If centering is active, changing width/height doesn't affect left/top, 
-                    // but the element visually resizes from the center point.
-                } else {
-                    // If not centered, we check if drag position is still inside canvas
-                    // This is for robustness but is not strictly necessary for the core fix.
-                }
-            }
-            
             updateHtmlOutput();
         }
 
@@ -603,7 +597,7 @@ ${innerHtml.trim()}
             const isCentered = activeElement.dataset.centered === 'true';
 
             if (isCentered) {
-                // --- TURN OFF Centering (Disable) ---
+                // --- FIX 1: TURN OFF Centering (Disable) ---
                 
                 // 1. Read the current visual position (using offsetLeft/Top while centered)
                 // This gives the element's actual top-left corner position relative to the canvas.
@@ -706,25 +700,12 @@ ${innerHtml.trim()}
         }
 
         /**
-         * Highlights the list item corresponding to the active element.
-         */
-        function updateLayerHighlight() {
-            layerPanel.querySelectorAll('li[data-element-id]').forEach(li => {
-                li.classList.remove('bg-blue-100', 'border-blue-500', 'ring-2', 'ring-blue-300');
-                if (activeElement && li.dataset.elementId === activeElement.id) {
-                    li.classList.add('bg-blue-100', 'border-blue-500', 'ring-2', 'ring-blue-300');
-                }
-            });
-        }
-
-        /**
          * Recalculates and sets the Z-index based on the order in the layer panel.
          */
         function reorderElements() {
             const listItems = Array.from(layerPanel.querySelectorAll('li[data-element-id]'));
             const totalItems = canvas.querySelectorAll('.ui-element-wrapper').length;
             
-            // The item at index 0 is at the top layer
             listItems.forEach((li, index) => {
                 // Item at index 0 (top) gets Z = totalItems (highest).
                 const zIndex = totalItems - index; 
@@ -736,11 +717,10 @@ ${innerHtml.trim()}
                     
                     li.innerHTML = `<span class="font-medium">${li.dataset.name}</span> <span class="text-xs text-gray-400"> (Z: ${zIndex})</span>`;
                 } else if (wrapper === activeElement) {
-                      // Keep Z-index boosted (1000) for active element only while dragging/resizing, otherwise set actual Z-index
-                      if (!isDragging && !isResizing) {
-                         wrapper.style.zIndex = zIndex; 
-                      }
-                      li.innerHTML = `<span class="font-medium">${li.dataset.name}</span> <span class="text-xs text-gray-400"> (Z: ${wrapper.style.zIndex})</span>`;
+                     // Keep Z-index boosted for active element if manipulation is happening
+                     if (!isDragging && !isResizing) {
+                        wrapper.style.zIndex = zIndex; 
+                     }
                 }
             });
 
@@ -753,7 +733,6 @@ ${innerHtml.trim()}
 
         /**
          * Rebuilds the layer panel if needed and attaches all listeners.
-         * ***THIS WAS THE INCOMPLETE FUNCTION***
          */
         function updateLayers() {
             const elements = Array.from(canvas.querySelectorAll('.ui-element-wrapper'));
@@ -763,18 +742,12 @@ ${innerHtml.trim()}
                 return;
             }
 
-            // Only rebuild the list if the number of elements changed (added or removed)
             const existingLis = layerPanel.querySelectorAll('li[data-element-id]').length;
             if (elements.length !== existingLis) {
-                // Rebuild list
+                 // Rebuild list only if structure changed (add/remove)
                 layerPanel.innerHTML = '';
                 
-                // Sort by current Z-index to reflect the actual order in the canvas
-                elements.sort((a, b) => {
-                    const zA = parseInt(a.style.zIndex || a.dataset.baseZIndex);
-                    const zB = parseInt(b.style.zIndex || b.dataset.baseZIndex);
-                    return zB - zA; // Highest Z-index first
-                });
+                elements.sort((a, b) => parseInt(b.dataset.baseZIndex) - parseInt(a.dataset.baseZIndex));
 
                 elements.forEach(el => {
                     const li = document.createElement('li');
@@ -783,191 +756,288 @@ ${innerHtml.trim()}
                     li.draggable = true; 
                     li.dataset.name = el.dataset.name;
                     
-                    const currentZIndex = el.style.zIndex || el.dataset.baseZIndex;
-                    li.innerHTML = `<span class="font-medium">${li.dataset.name}</span> <span class="text-xs text-gray-400"> (Z: ${currentZIndex})</span>`;
+                    li.innerHTML = `<span class="font-medium">${li.dataset.name}</span> <span class="text-xs text-gray-400"> (Z: ${el.style.zIndex})</span>`;
 
-                    // Selection listener (important for clicking elements in the panel)
-                    li.addEventListener('click', (e) => {
-                        e.stopPropagation();
+                    // Selection listener
+                    li.addEventListener('click', () => {
                         const targetEl = document.getElementById(el.id);
                         if (targetEl) {
                             setActiveElement(targetEl);
                         }
                     });
                     
-                    // Drag listeners for the layer panel item
+                    // Drag event listeners
                     li.addEventListener('dragstart', handleDragStart);
                     li.addEventListener('dragend', handleDragEnd);
-                    
+
                     layerPanel.appendChild(li);
                 });
             }
-            // In a real application, you'd also need a way to remove elements
+           
+            // Attach dragover and drop listeners to the parent UL
+            layerPanel.removeEventListener('dragover', handleDragOver);
+            layerPanel.removeEventListener('drop', handleDrop);
+            layerPanel.addEventListener('dragover', handleDragOver);
+            layerPanel.addEventListener('drop', handleDrop);
+
+            reorderElements(); 
+            updateLayerHighlight();
         }
 
-
-        // --- Drag & Resize Handlers ---
-
         /**
-         * The combined start handler for drag and resize.
+         * Highlights the active element in the layer panel.
          */
-        function handlePointerDown(e) {
-            e.stopPropagation();
-            const target = e.target;
-            
-            // 1. Get the wrapper element
-            const wrapper = target.closest('.ui-element-wrapper');
-            if (!wrapper) return;
-
-            // 2. Set the element as active
-            setActiveElement(wrapper);
-            
-            // Prevent drag/resize if element is responsively centered
-            if (wrapper.dataset.centered === 'true') {
-                 // Clicking on an element will still make it active, but won't start drag/resize
-                 return;
-            }
-
-            // 3. Check for resize handle interaction
-            if (target.classList.contains('resize-handle')) {
-                isResizing = true;
-                activeHandle = target.dataset.handle;
-                wrapper.style.cursor = 'crosshair';
-
-                // Initial dimensions
-                startWidth = wrapper.offsetWidth;
-                startHeight = wrapper.offsetHeight;
-                startLeft = wrapper.offsetLeft;
-                startTop = wrapper.offsetTop;
-            } else if (wrapper.classList.contains('ui-element-wrapper') && !target.classList.contains('ui-button')) {
-                // 4. Check for drag interaction on the wrapper itself (but not the inner button)
-                isDragging = true;
-                wrapper.style.cursor = 'move';
+        function updateLayerHighlight() {
+            layerPanel.querySelectorAll('li[data-element-id]').forEach(li => {
+                const wrapperId = li.dataset.elementId;
+                const el = document.getElementById(wrapperId);
+                const currentZ = el ? el.style.zIndex : 'N/A';
                 
-                // Initial position and mouse coordinates
-                startX = e.clientX;
-                startY = e.clientY;
-                startLeft = wrapper.offsetLeft;
-                startTop = wrapper.offsetTop;
+                const defaultText = `<span class="font-medium">${li.dataset.name}</span> <span class="text-xs text-gray-400"> (Z: ${currentZ})</span>`;
 
-                // Temporarily boost z-index while dragging
-                wrapper.style.zIndex = 1000;
-            } else {
-                return; // Clicking on the inner button text/content
+                if (activeElement && activeElement.id === wrapperId) {
+                    li.classList.add('bg-blue-100', 'border-blue-500', 'text-blue-800', 'font-semibold');
+                    li.classList.remove('bg-white', 'border-gray-200', 'text-gray-700');
+                    
+                    // Display the current Z-index, potentially boosted (1000)
+                    li.innerHTML = `<span class="font-medium">${li.dataset.name}</span> <span class="text-xs text-blue-500 font-extrabold"> (Z: ${currentZ})</span>`;
+                    
+                } else {
+                    li.classList.remove('bg-blue-100', 'border-blue-500', 'text-blue-800', 'font-semibold');
+                    li.classList.add('bg-white', 'border-gray-200', 'text-gray-700');
+                    
+                    li.innerHTML = defaultText;
+                }
+            });
+        }
+        
+        /**
+         * Handles copying the HTML output to the clipboard.
+         */
+        function handleCopyHtml() {
+            htmlOutput.select();
+            htmlOutput.setSelectionRange(0, 99999); 
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    copyMessage.textContent = 'HTML Copied!';
+                    copyMessage.classList.remove('hidden');
+                    setTimeout(() => copyMessage.classList.add('hidden'), 2000);
+                } else {
+                     copyMessage.textContent = 'Copy failed. Please manually copy the text.';
+                     copyMessage.classList.remove('hidden', 'text-green-600');
+                     copyMessage.classList.add('text-red-600');
+                     setTimeout(() => {
+                        copyMessage.classList.add('hidden');
+                        copyMessage.classList.remove('text-red-600');
+                        copyMessage.classList.add('text-green-600');
+                     }, 3000);
+                }
+            } catch (err) {
+                console.error('Copy command failed:', err);
+                copyMessage.textContent = 'Copy failed. Please manually copy the text.';
+                copyMessage.classList.remove('hidden', 'text-green-600');
+                copyMessage.classList.add('text-red-600');
+                 setTimeout(() => {
+                    copyMessage.classList.add('hidden');
+                    copyMessage.classList.remove('text-red-600');
+                    copyMessage.classList.add('text-green-600');
+                 }, 3000);
             }
+        }
 
-            // Attach global handlers for drag/resize movement and end
-            document.addEventListener('pointermove', handlePointerMove);
-            document.addEventListener('pointerup', handlePointerUp);
+
+        // --- Drag & Resize Handlers (Canvas Interaction) ---
+
+        /**
+         * Starts the dragging or resizing process.
+         */
+        function startInteraction(e) {
+            const isTouchEvent = e.type.startsWith('touch');
+            const event = isTouchEvent ? e.touches[0] : e;
+            const target = e.target;
+
+            if (target.tagName === 'INPUT' || target.closest('.ui-button')?.querySelector('input')) return;
+
+            if (target.classList.contains('resize-handle')) {
+                // Resize start
+                e.preventDefault(); 
+                isResizing = true;
+                activeHandle = target;
+                activeElement = target.parentElement;
+                setActiveElement(activeElement);
+                
+                // Disable centering if trying to resize
+                if (activeElement.dataset.centered === 'true') {
+                    toggleResponsiveCentering(); 
+                }
+
+                activeElement.style.zIndex = 1000; // Z-index boost
+                updateLayerHighlight(); 
+
+                startWidth = activeElement.offsetWidth;
+                startHeight = activeElement.offsetHeight;
+                startLeft = activeElement.offsetLeft;
+                startTop = activeElement.offsetTop;
+                startX = event.clientX;
+                startY = event.clientY;
+
+                activeElement.style.transition = 'none';
+
+            } else if (target.closest('.ui-element-wrapper')) {
+                const wrapper = target.closest('.ui-element-wrapper');
+                
+                // Check if dragging is allowed (not responsively centered)
+                if (wrapper.dataset.centered === 'true') {
+                    // If centered, don't start dragging, just set active.
+                    setActiveElement(wrapper);
+                    return; 
+                }
+
+                // Drag start
+                if (wrapper.contains(target) && (target === wrapper || target.classList.contains('ui-button'))) {
+                    
+                    isDragging = true;
+                    activeElement = wrapper;
+                    setActiveElement(activeElement);
+
+                    activeElement.style.zIndex = 1000; // Z-index boost
+                    updateLayerHighlight(); 
+                    
+                    startX = event.clientX;
+                    startY = event.clientY;
+                    startLeft = activeElement.offsetLeft;
+                    startTop = activeElement.offsetTop;
+
+                    activeElement.style.transition = 'none';
+                }
+            } else {
+                // Clicked outside the elements
+                setActiveElement(null);
+            }
         }
 
         /**
-         * Handles the movement logic for both drag and resize.
+         * Handles the dragging or resizing logic.
          */
-        function handlePointerMove(e) {
-            if (!activeElement) return;
+        function moveInteraction(e) {
+            if (!activeElement || (!isDragging && !isResizing)) return;
+
+            // FIX 2: Prevent default action (scrolling/text selection) to stop the "วาป" or jumping
+            e.preventDefault(); 
+            
+            const isTouchEvent = e.type.startsWith('touch');
+            const event = isTouchEvent ? e.touches[0] : e;
+
+            const dx = event.clientX - startX;
+            const dy = event.clientY - startY;
+
+            const canvasRect = canvas.getBoundingClientRect();
 
             if (isDragging) {
-                const deltaX = e.clientX - startX;
-                const deltaY = e.clientY - startY;
+                // --- Dragging Logic ---
+                let newLeft = startLeft + dx;
+                let newTop = startTop + dy;
 
-                let newLeft = startLeft + deltaX;
-                let newTop = startTop + deltaY;
+                // Boundary checks
+                newLeft = Math.max(0, Math.min(newLeft, canvasRect.width - activeElement.offsetWidth));
+                newTop = Math.max(0, Math.min(newTop, canvasRect.height - activeElement.offsetHeight));
 
-                // Get canvas bounds
-                const canvasRect = canvas.getBoundingClientRect();
-                const wrapperRect = activeElement.getBoundingClientRect();
-
-                // Simple bounds checking (keep element fully inside canvas)
-                newLeft = Math.max(0, Math.min(newLeft, canvasRect.width - wrapperRect.width));
-                newTop = Math.max(0, Math.min(newTop, canvasRect.height - wrapperRect.height));
-                
+                // Always set as pixel values
                 activeElement.style.left = `${newLeft}px`;
                 activeElement.style.top = `${newTop}px`;
                 
-                updateHtmlOutput();
+                // Crucial: remove transform if it somehow remains (safety measure)
+                activeElement.style.removeProperty('transform');
 
             } else if (isResizing) {
-                const deltaX = e.clientX - startX;
-                const deltaY = e.clientY - startY;
-
+                // --- Resizing Logic ---
+                const minSize = 50;
+                const handle = activeHandle.dataset.handle;
                 let newWidth = startWidth;
                 let newHeight = startHeight;
                 let newLeft = startLeft;
                 let newTop = startTop;
 
-                // Resize logic based on handle
-                switch (activeHandle) {
-                    case 'br': // Bottom-Right
-                        newWidth = Math.max(50, startWidth + deltaX);
-                        newHeight = Math.max(30, startHeight + deltaY);
+                switch (handle) {
+                    case 'br': 
+                        newWidth = Math.max(minSize, startWidth + dx);
+                        newHeight = Math.max(minSize, startHeight + dy);
                         break;
-                    case 'bl': // Bottom-Left
-                        newWidth = Math.max(50, startWidth - deltaX);
-                        newHeight = Math.max(30, startHeight + deltaY);
+                    case 'bl': 
+                        newWidth = Math.max(minSize, startWidth - dx);
+                        newHeight = Math.max(minSize, startHeight + dy);
                         newLeft = startLeft + (startWidth - newWidth);
                         break;
-                    case 'tr': // Top-Right
-                        newWidth = Math.max(50, startWidth + deltaX);
-                        newHeight = Math.max(30, startHeight - deltaY);
+                    case 'tr': 
+                        newWidth = Math.max(minSize, startWidth + dx);
+                        newHeight = Math.max(minSize, startHeight - dy);
                         newTop = startTop + (startHeight - newHeight);
                         break;
-                    case 'tl': // Top-Left
-                        newWidth = Math.max(50, startWidth - deltaX);
-                        newHeight = Math.max(30, startHeight - deltaY);
+                    case 'tl': 
+                        newWidth = Math.max(minSize, startWidth - dx);
+                        newHeight = Math.max(minSize, startHeight - dy);
                         newLeft = startLeft + (startWidth - newWidth);
                         newTop = startTop + (startHeight - newHeight);
                         break;
                 }
                 
+                // Boundary checks (prevent element from leaving the canvas)
+                if (newLeft < 0) { newWidth -= (0 - newLeft); newLeft = 0; }
+                if (newTop < 0) { newHeight -= (0 - newTop); newTop = 0; }
+                if (newLeft + newWidth > canvasRect.width) { newWidth = canvasRect.width - newLeft; }
+                if (newTop + newHeight > canvasRect.height) { newHeight = canvasRect.height - newTop; }
+                
+                newWidth = Math.max(minSize, newWidth);
+                newHeight = Math.max(minSize, newHeight);
+
+                // Always set as pixel values
                 activeElement.style.width = `${newWidth}px`;
                 activeElement.style.height = `${newHeight}px`;
                 activeElement.style.left = `${newLeft}px`;
                 activeElement.style.top = `${newTop}px`;
+                
+                activeElement.style.removeProperty('transform'); 
 
-                // Update properties panel after resize
+                // Update properties panel immediately during resize
                 propWidth.value = Math.round(newWidth);
                 propHeight.value = Math.round(newHeight);
-
-                updateHtmlOutput();
             }
         }
 
         /**
-         * The combined end handler for drag and resize.
+         * Ends the dragging or resizing process and updates HTML output.
          */
-        function handlePointerUp() {
-            if (!activeElement) return;
-
-            // Clean up state
+        function endInteraction() {
+            if (activeElement) {
+                activeElement.style.transition = 'all 0.1s ease-in-out';
+                
+                reorderElements(); 
+                updatePropertiesPanel(); // Final update to sync properties panel
+                updateHtmlOutput(); 
+            }
             isDragging = false;
             isResizing = false;
             activeHandle = null;
-            activeElement.style.cursor = activeElement.dataset.centered === 'true' ? 'default' : 'move';
-
-            // Restore z-index from the layer panel order
-            reorderElements(); 
-
-            // Detach global handlers
-            document.removeEventListener('pointermove', handlePointerMove);
-            document.removeEventListener('pointerup', handlePointerUp);
         }
 
-        // --- Event Listeners and Initialization (CRUCIAL FIX) ---
+
+        // --- Initialization ---
 
         function init() {
-            // Get DOM elements
+            // Assign DOM elements
             addButton = document.getElementById('add-button');
-            addUI = document.getElementById('add-ui');
-            centerElementToggle = document.getElementById('center-element-toggle');
+            addUI = document.getElementById('add-ui'); 
+            centerElementToggle = document.getElementById('center-element-toggle'); 
             htmlOutput = document.getElementById('html-output');
             copyHtmlButton = document.getElementById('copy-html-button');
             copyMessage = document.getElementById('copy-message');
 
+            // Properties Panel Elements 
             propertiesPanel = document.getElementById('properties-panel');
             noSelectionMessage = document.getElementById('no-selection-message');
             propertiesControls = document.getElementById('properties-controls');
-
             propText = document.getElementById('prop-text');
             propWidth = document.getElementById('prop-width');
             propHeight = document.getElementById('prop-height');
@@ -975,12 +1045,14 @@ ${innerHtml.trim()}
             propTextColor = document.getElementById('prop-text-color');
             propFontSize = document.getElementById('prop-font-size');
 
-            // 1. Toolbox Listeners
-            addButton.addEventListener('click', createButton);
-            addUI.addEventListener('click', createUIElement);
-            centerElementToggle.addEventListener('click', toggleResponsiveCentering);
 
-            // 2. Properties Panel Listeners
+            // Button handlers
+            if (addButton) addButton.addEventListener('click', createButton); 
+            if (addUI) addUI.addEventListener('click', createUIElement); 
+            if (centerElementToggle) centerElementToggle.addEventListener('click', toggleResponsiveCentering); 
+            if (copyHtmlButton) copyHtmlButton.addEventListener('click', handleCopyHtml);
+
+            // Property input listeners
             propText.addEventListener('input', handlePropertyChange);
             propWidth.addEventListener('input', handlePropertyChange);
             propHeight.addEventListener('input', handlePropertyChange);
@@ -988,32 +1060,32 @@ ${innerHtml.trim()}
             propTextColor.addEventListener('input', handlePropertyChange);
             propFontSize.addEventListener('input', handlePropertyChange);
 
-            // 3. Canvas Listeners (for deselecting)
+            // Setup global mouse and touch listeners for drag/resize
+            const interactionEvents = [
+                { start: 'mousedown', move: 'mousemove', end: 'mouseup' },
+                { start: 'touchstart', move: 'touchmove', end: 'touchend' }
+            ];
+
+            interactionEvents.forEach(e => {
+                document.addEventListener(e.start, startInteraction);
+                document.addEventListener(e.move, moveInteraction);
+                document.addEventListener(e.end, endInteraction);
+            });
+
+            // Handle canvas click to deselect
             canvas.addEventListener('click', (e) => {
-                 if (e.target === canvas) {
-                    setActiveElement(null); // Deselect if clicking on the canvas background
-                 }
+                if (e.target.id === 'editor-canvas' && !e.target.querySelector('input')) {
+                    setActiveElement(null);
+                }
             });
 
-            // 4. Layer Panel Drag/Drop Listeners
-            layerPanel.addEventListener('dragover', handleDragOver);
-            layerPanel.addEventListener('drop', handleDrop);
-            
-            // 5. HTML Output Copy Listener
-            copyHtmlButton.addEventListener('click', () => {
-                 navigator.clipboard.writeText(htmlOutput.value).then(() => {
-                    copyMessage.classList.remove('hidden');
-                    setTimeout(() => copyMessage.classList.add('hidden'), 2000);
-                 });
-            });
-
-            // Add a single starting button for demo purposes
+             // Create one button initially for testing
             createButton();
         }
 
-        // Run the initialization function once the DOM is ready
-        document.addEventListener('DOMContentLoaded', init);
-        
+        // Wait for the DOM to be fully loaded before initializing
+        window.onload = init;
+
     </script>
 </body>
 </html>
